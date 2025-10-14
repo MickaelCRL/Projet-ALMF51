@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Project-ALMF51.Web")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8fc212138cb14fafea36bd0fa01033f8b0fda384")]
 [assembly: System.Reflection.AssemblyProductAttribute("Project-ALMF51.Web")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Project-ALMF51.Web")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
