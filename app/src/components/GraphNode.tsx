@@ -1,16 +1,17 @@
 import { useEffect, useRef, useState } from "react";
-
+import { Network, DataSet } from "vis-network/standalone";
 const GraphNode: React.FC = () => {
   const containerRef = useRef(null);
   const networkRef = useRef(null);
   const nodesRef = useRef(null);
   const edgesRef = useRef(null);
+  
 
   const [src, setSrc] = useState("Rennes");
   const [dst, setDst] = useState("Lille");
 
   useEffect(() => {
-    const nodes = new vis.DataSet([
+    const nodes = new DataSet([
       { id: "Rennes", label: "Rennes" },
       { id: "Caen", label: "Caen" },
       { id: "Lille", label: "Lille" },
@@ -23,7 +24,7 @@ const GraphNode: React.FC = () => {
       { id: "Grenoble", label: "Grenoble" },
     ]);
 
-    const edges = new vis.DataSet([
+    const edges = new DataSet([
       { id: "Rennes-Caen", from: "Rennes", to: "Caen", label: "75", width: 2 },
       { id: "Caen-Lille", from: "Caen", to: "Lille", label: "65", width: 2 },
       { id: "Rennes-Paris", from: "Rennes", to: "Paris", label: "110", width: 2 },
@@ -50,10 +51,10 @@ const GraphNode: React.FC = () => {
       physics: { enabled: true, solver: "forceAtlas2Based", stabilization: { iterations: 150 } },
       nodes: { shape: "dot", size: 16, color: { background: "#60a5fa", border: "#fff" } },
       edges: { color: "#94a3b8", font: { align: "top" }, smooth: { type: "dynamic" } },
-      interaction: { hover: true, navigationButtons: true, keyboard: true },
+      interaction: { hover: true},
     };
 
-    const net = new vis.Network(containerRef.current, { nodes, edges }, options);
+    const net = new Network(containerRef.current, { nodes, edges }, options);
 
     networkRef.current = net;
     nodesRef.current = nodes;
