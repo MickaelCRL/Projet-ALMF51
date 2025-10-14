@@ -3,23 +3,22 @@ import Header from "./components/Header";
 import { Container, Box, Typography } from "@mui/material";
 import { getBFSAsync } from "./services/bfsService";
 import type { Graph } from "./models/Graph";
-import type { Node } from "./models/Node";
 
 function App() {
-  const start: Node = { name: "Rennes" };
+  const start = "Rennes";
 
   const franceGraph: Graph = {
     nodes: [
-      { name: "Rennes" },
-      { name: "Nantes" },
-      { name: "Bordeaux" },
-      { name: "Caen" },
-      { name: "Paris" },
-      { name: "Lille" },
-      { name: "Nancy" },
-      { name: "Dijon" },
-      { name: "Lyon" },
-      { name: "Grenoble" },
+      "Rennes",
+      "Nantes",
+      "Bordeaux",
+      "Caen",
+      "Paris",
+      "Lille",
+      "Nancy",
+      "Dijon",
+      "Lyon",
+      "Grenoble",
     ],
     edges: [
       { from: "Rennes", to: "Nantes", weight: 45 },

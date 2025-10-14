@@ -10,7 +10,7 @@ namespace Project_ALMF51.Web.Presentation
 
         public static void MapBFSEndpoint(this IEndpointRouteBuilder app)
         {
-            app.MapPost(BFSRoute, ([FromBody] BFSRequest request, IBFSServices bfs) =>
+            app.MapPost(BFSRoute, (BFSRequest request, IBFSServices bfs) =>
             {
                 var result = bfs.Traverse(request.Graph, request.Start);
                 return Results.Ok(result);
