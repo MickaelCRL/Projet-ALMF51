@@ -1,7 +1,12 @@
+import useSWR from "swr";
 import Header from "./components/Header";
 import { Container, Box, Typography } from "@mui/material";
+import { getBFSAsync } from "./services/bfsService";
 
 function App() {
+  const { data, error, isLoading } = useSWR("toto", getBFSAsync);
+  console.log(data);
+
   return (
     <>
       <Header />
