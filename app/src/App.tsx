@@ -1,5 +1,6 @@
 import useSWR from "swr";
 import Header from "./components/Header";
+import GraphNode from "./components/GraphNode";
 import { Container, Box, Typography } from "@mui/material";
 import { getBFSAsync } from "./services/bfsService";
 import type { Graph } from "./models/Graph";
@@ -72,6 +73,7 @@ function App() {
           </Typography>
         </Box>
       </Container>
+      <GraphNode/>
     </>
   );
 }
