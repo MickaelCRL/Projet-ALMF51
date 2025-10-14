@@ -2,7 +2,7 @@ using Project_ALMF51.Web.DependencyInjection;
 using Project_ALMF51.Web.Presentation;
 using Scalar.AspNetCore;
 
-var MyAllowSpecificOrigins = "MyAllowSpecificOrigins";
+const string MyAllowSpecificOrigins = "MyAllowSpecificOrigins";
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,6 +29,8 @@ builder.RegisterApplicationServices();
 
 var app = builder.Build();
 
+app.UseCors(MyAllowSpecificOrigins);
+
 app.MapGet("/", () => Results.Ok("OK"));
 
 // Configure the HTTP request pipeline.
@@ -38,9 +40,9 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 
-app.UseCors(MyAllowSpecificOrigins);
 
-app.UseHttpsRedirection();
+
+//app.UseHttpsRedirection();
 
 app.MapBFSEndpoint();
 

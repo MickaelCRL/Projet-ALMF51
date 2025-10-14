@@ -1,5 +1,6 @@
 ﻿using Project_ALMF51.Web.Application;
 using Project_ALMF51.Web.Domain;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Project_ALMF51.Web.Presentation
 {
@@ -9,9 +10,9 @@ namespace Project_ALMF51.Web.Presentation
 
         public static void MapBFSEndpoint(this IEndpointRouteBuilder app)
         {
-            app.MapPost(BFSRoute, (Graph graph, string start, IBFSServices bfs) =>
+            app.MapPost(BFSRoute, ([FromBody] BFSRequest request, IBFSServices bfs) =>
             {
-                var result = bfs.Traverse(graph, start);
+                var result = bfs.Traverse(request.Graph, request.Start);
                 return Results.Ok(result);
             });
 
