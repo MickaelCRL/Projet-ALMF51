@@ -1,48 +1,56 @@
-import React from "react";
 import AppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import MenuIcon from "@mui/icons-material/Menu";
-import { Box, Button } from "@mui/material";
+import { Box } from "@mui/material";
+import HeaderButton from "./ui/HeaderButton";
 
-const Header: React.FC = () => {
+function Header() {
+  const navItems = ["Parcours", "Arbre couvrant", "Chemin optimal", "À propos"];
+
   return (
     <AppBar
       position="static"
-      color="primary"
       elevation={0}
       sx={{
         backgroundColor: "#ffffff",
-        color: "#000000",
+        color: "#0f172a",
         width: "100%",
-        borderBottom: "1px solid #E0E0E0",
+        borderBottom: "2px solid #e2e8f0",
       }}
     >
-      <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+      <Toolbar sx={{ display: "flex", justifyContent: "space-between", py: 1 }}>
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 700,
+            fontFamily: "Inter, system-ui, sans-serif",
+            fontSize: "20px",
+            color: "#0f172a",
+          }}
+        >
           Projet ALMF51
         </Typography>
 
-        {/* Navigation */}
-        <Box sx={{ display: "flex", gap: 2 }}>
-          <Button color="inherit">Parcours</Button>
-          <Button color="inherit">Arbre couvrant</Button>
-          <Button color="inherit">Chemin optimal</Button>
-          <Button color="inherit">À propos</Button>
+        <Box sx={{ display: { xs: "none", md: "flex" }, gap: 1 }}>
+          {navItems.map((item) => (
+            <HeaderButton key={item}>{item}</HeaderButton>
+          ))}
         </Box>
 
-        {/* Menu (mobile / futur) */}
         <IconButton
-          color="inherit"
+          sx={{
+            display: { xs: "flex", md: "none" },
+            color: "#64748b",
+          }}
           edge="end"
-          sx={{ display: { xs: "flex", md: "none" } }}
         >
           <MenuIcon />
         </IconButton>
       </Toolbar>
     </AppBar>
   );
-};
+}
 
 export default Header;

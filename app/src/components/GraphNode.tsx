@@ -1,17 +1,14 @@
-import { useEffect, useRef, useState } from "react";
-import { Network, DataSet } from "vis-network/standalone";
-const GraphNode: React.FC = () => {
-  const containerRef = useRef(null);
-  const networkRef = useRef(null);
-  const nodesRef = useRef(null);
-  const edgesRef = useRef(null);
-  
+import { Box, Paper, Typography } from "@mui/material";
+import { useEffect, useRef } from "react";
+import { Network } from "vis-network/standalone";
 
-  const [src, setSrc] = useState("Rennes");
-  const [dst, setDst] = useState("Lille");
+function GraphNode() {
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const nodes = new DataSet([
+    if (!containerRef.current) return;
+
+    const nodes = [
       { id: "Rennes", label: "Rennes" },
       { id: "Caen", label: "Caen" },
       { id: "Lille", label: "Lille" },
@@ -22,57 +19,141 @@ const GraphNode: React.FC = () => {
       { id: "Dijon", label: "Dijon" },
       { id: "Nancy", label: "Nancy" },
       { id: "Grenoble", label: "Grenoble" },
-    ]);
+    ];
 
-    const edges = new DataSet([
-      { id: "Rennes-Caen", from: "Rennes", to: "Caen", label: "75", width: 2 },
-      { id: "Caen-Lille", from: "Caen", to: "Lille", label: "65", width: 2 },
-      { id: "Rennes-Paris", from: "Rennes", to: "Paris", label: "110", width: 2 },
-      { id: "Paris-Caen", from: "Paris", to: "Caen", label: "50", width: 2 },
-      { id: "Paris-Lille", from: "Paris", to: "Lille", label: "70", width: 2 },
-      { id: "Paris-Dijon", from: "Paris", to: "Dijon", label: "60", width: 2 },
-      { id: "Rennes-Nantes", from: "Rennes", to: "Nantes", label: "45", width: 2 },
-      { id: "Nantes-Paris", from: "Nantes", to: "Paris", label: "80", width: 2 },
-      { id: "Nantes-Bordeaux", from: "Nantes", to: "Bordeaux", label: "90", width: 2 },
-      { id: "Rennes-Bordeaux", from: "Rennes", to: "Bordeaux", label: "130", width: 2 },
-      { id: "Bordeaux-Paris", from: "Bordeaux", to: "Paris", label: "150", width: 2 },
-      { id: "Bordeaux-Lyon", from: "Bordeaux", to: "Lyon", label: "100", width: 2 },
-      { id: "Lille-Nancy", from: "Lille", to: "Nancy", label: "100", width: 2 },
-      { id: "Lille-Dijon", from: "Lille", to: "Dijon", label: "120", width: 2 },
-      { id: "Dijon-Nancy", from: "Dijon", to: "Nancy", label: "75", width: 2 },
-      { id: "Dijon-Grenoble", from: "Dijon", to: "Grenoble", label: "75", width: 2 },
-      { id: "Grenoble-Nancy", from: "Grenoble", to: "Nancy", label: "80", width: 2 },
-      { id: "Lyon-Nancy", from: "Lyon", to: "Nancy", label: "90", width: 2 },
-      { id: "Dijon-Lyon", from: "Dijon", to: "Lyon", label: "70", width: 2 },
-      { id: "Lyon-Grenoble", from: "Lyon", to: "Grenoble", label: "40", width: 2 },
-    ]);
+    const edges = [
+      { from: "Rennes", to: "Caen", label: "75" },
+      { from: "Caen", to: "Lille", label: "65" },
+      { from: "Rennes", to: "Paris", label: "110" },
+      { from: "Paris", to: "Caen", label: "50" },
+      { from: "Paris", to: "Lille", label: "70" },
+      { from: "Paris", to: "Dijon", label: "60" },
+      { from: "Rennes", to: "Nantes", label: "45" },
+      { from: "Nantes", to: "Paris", label: "80" },
+      { from: "Nantes", to: "Bordeaux", label: "90" },
+      { from: "Rennes", to: "Bordeaux", label: "130" },
+      { from: "Bordeaux", to: "Paris", label: "150" },
+      { from: "Bordeaux", to: "Lyon", label: "100" },
+      { from: "Lille", to: "Nancy", label: "100" },
+      { from: "Lille", to: "Dijon", label: "120" },
+      { from: "Dijon", to: "Nancy", label: "75" },
+      { from: "Dijon", to: "Grenoble", label: "75" },
+      { from: "Grenoble", to: "Nancy", label: "80" },
+      { from: "Lyon", to: "Nancy", label: "90" },
+      { from: "Dijon", to: "Lyon", label: "70" },
+      { from: "Lyon", to: "Grenoble", label: "40" },
+    ];
 
     const options = {
-      physics: { enabled: true, solver: "forceAtlas2Based", stabilization: { iterations: 150 } },
-      nodes: { shape: "dot", size: 16, color: { background: "#60a5fa", border: "#fff" } },
-      edges: { color: "#94a3b8", font: { align: "top" }, smooth: { type: "dynamic" } },
-      interaction: { hover: true},
+      nodes: {
+        shape: "dot",
+        size: 22,
+        color: {
+          background: "#6366f1",
+          border: "#4f46e5",
+          highlight: {
+            background: "#818cf8",
+            border: "#6366f1",
+          },
+        },
+        font: {
+          color: "#0f172a",
+          size: 15,
+          face: "Inter, system-ui, sans-serif",
+          background: "rgba(255, 255, 255, 0.95)",
+          strokeWidth: 0,
+        },
+        borderWidth: 2,
+      },
+      edges: {
+        color: {
+          color: "#64748b",
+          highlight: "#6366f1",
+        },
+        width: 2.5,
+        font: {
+          align: "top",
+          size: 13,
+          color: "#334155",
+          background: "rgba(255, 255, 255, 0.9)",
+          strokeWidth: 0,
+        },
+        smooth: {
+          enabled: true,
+          type: "dynamic",
+          roundness: 0.5,
+        },
+      },
+      physics: {
+        enabled: true,
+        solver: "forceAtlas2Based",
+        stabilization: { iterations: 150 },
+      },
+      interaction: {
+        hover: true,
+        zoomView: true,
+        dragView: true,
+      },
     };
 
-    const net = new Network(containerRef.current, { nodes, edges }, options);
+    const network = new Network(
+      containerRef.current,
+      { nodes, edges },
+      options
+    );
 
-    networkRef.current = net;
-    nodesRef.current = nodes;
-    edgesRef.current = edges;
-
-    return () => net?.destroy();
+    return () => network.destroy();
   }, []);
 
   return (
-    <div className="app-container">
-      <div className="navbar">
-        <div className="navbar-title">Projet Graphe — vis-network</div>
-      </div>
+    <Box
+      display="flex"
+      flexDirection="column"
+      alignItems="center"
+      sx={{
+        p: { xs: 3, md: 5 },
+        background: "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)",
+      }}
+    >
+      <Typography
+        variant="h3"
+        sx={{
+          color: "#0f172a",
+          mb: 1,
+          fontFamily: "Inter, system-ui, sans-serif",
+          fontWeight: 700,
+          fontSize: { xs: "28px", md: "32px" },
+        }}
+      >
+        Algorithmes de Graphes
+      </Typography>
 
-      <div className="graph-container">
-        <div id="vis" ref={containerRef} className="graph" />
-      </div>
-    </div>
+      <Typography
+        variant="body1"
+        sx={{
+          color: "#64748b",
+          mb: 3,
+          fontFamily: "Inter, system-ui, sans-serif",
+          fontSize: "16px",
+        }}
+      >
+        Visualisation du graphe
+      </Typography>
+
+      <Paper
+        ref={containerRef}
+        elevation={6}
+        sx={{
+          height: "600px",
+          width: "100%",
+          maxWidth: "1024px",
+          border: "2px solid #cbd5e1",
+          borderRadius: "16px",
+          backgroundColor: "#ffffff",
+        }}
+      />
+    </Box>
   );
 }
+
 export default GraphNode;

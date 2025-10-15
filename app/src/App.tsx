@@ -53,27 +53,14 @@ function App() {
     ],
   };
 
-  const { data, error, isLoading } = useSWR(
-    [franceGraph, start],
-    ([franceGraph, start]) => getBFSAsync(franceGraph, start)
+  const { data } = useSWR([franceGraph, start], ([franceGraph, start]) =>
+    getBFSAsync(franceGraph, start)
   );
   console.log(data);
 
   return (
     <>
-      <Header />
-      <Container maxWidth="lg">
-        <Box sx={{ mt: 4 }}>
-          <Typography variant="h4" gutterBottom>
-            Bienvenue dans le projet ALMF51
-          </Typography>
-          <Typography variant="body1">
-            Expérimentez les algorithmes de graphes : BFS, DFS, Kruskal, Prim,
-            Dijkstra, Bellman-Ford et Floyd-Warshall.
-          </Typography>
-        </Box>
-      </Container>
-      <GraphNode/>
+      <GraphNode />
     </>
   );
 }
