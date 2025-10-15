@@ -1,5 +1,5 @@
+import { Box, Button, Container, Typography } from "@mui/material";
 import { Link } from "react-router-dom";
-import { Box, Typography, Button, Container } from "@mui/material";
 
 function NotFoundPage() {
   return (
