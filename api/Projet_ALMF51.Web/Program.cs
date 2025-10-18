@@ -10,8 +10,6 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
-Console.WriteLine("toto " + builder.Configuration["AppBaseUrl"]);
-
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: MyAllowSpecificOrigins,
@@ -40,11 +38,8 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 
-
-
 //app.UseHttpsRedirection();
 
 app.MapBFSEndpoint();
-
 
 app.Run();

@@ -5,9 +5,17 @@ import IconButton from "@mui/material/IconButton";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import HeaderButton from "./ui/HeaderButton";
+import { Link, useNavigate } from "react-router-dom";
 
 function Header() {
-  const navItems = ["Parcours", "Arbre couvrant", "Chemin optimal", "À propos"];
+  const navigate = useNavigate();
+
+  const navItems = [
+    { label: "Parcours", path: "/parcours" },
+    { label: "Arbre couvrant", path: "/arbre-couvrant" },
+    { label: "Chemin optimal", path: "/chemin-optimal" },
+    { label: "À propos", path: "/a-propos" },
+  ];
 
   return (
     <AppBar
@@ -21,21 +29,25 @@ function Header() {
       }}
     >
       <Toolbar sx={{ display: "flex", justifyContent: "space-between", py: 1 }}>
-        <Typography
-          variant="h6"
-          sx={{
-            fontWeight: 700,
-            fontFamily: "Inter, system-ui, sans-serif",
-            fontSize: "20px",
-            color: "#0f172a",
-          }}
-        >
-          Projet ALMF51
-        </Typography>
+        <Link to="/" style={{ textDecoration: "none" }}>
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 700,
+              fontFamily: "Inter, system-ui, sans-serif",
+              fontSize: "20px",
+              color: "#0f172a",
+            }}
+          >
+            Projet ALMF51
+          </Typography>
+        </Link>
 
         <Box sx={{ display: { xs: "none", md: "flex" }, gap: 1 }}>
           {navItems.map((item) => (
-            <HeaderButton key={item}>{item}</HeaderButton>
+            <HeaderButton key={item.label} onClick={() => navigate(item.path)}>
+              {item.label}
+            </HeaderButton>
           ))}
         </Box>
 
