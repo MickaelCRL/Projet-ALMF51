@@ -5,7 +5,7 @@ import GraphNode from "../components/GraphNode";
 import { graph } from "../data/graph";
 import { getBFSAsync } from "../services/bfsService";
 
-function Parcours() {
+function Traversal() {
   const start = "Rennes";
 
   const { data } = useSWR([graph, start], ([graph, start]) =>
@@ -36,4 +36,4 @@ function Parcours() {
   );
 }
 
-export default Parcours;
+export default Traversal;
