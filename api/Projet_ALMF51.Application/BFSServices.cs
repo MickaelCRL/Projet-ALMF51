@@ -1,5 +1,5 @@
-﻿using Project_ALMF51.Web.Application;
-using Project_ALMF51.Web.Domain;
+﻿using Project_ALMF51.Application;
+using Project_ALMF51.Domain;
 
 namespace Project_ALMF51.Web.Services
 {

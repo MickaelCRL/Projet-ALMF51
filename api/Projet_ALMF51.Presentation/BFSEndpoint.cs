@@ -1,8 +1,10 @@
-﻿using Project_ALMF51.Web.Application;
-using Project_ALMF51.Web.Domain;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
+using Project_ALMF51.Application;
+using Projet_ALMF51.Presentation;
 
-namespace Project_ALMF51.Web.Presentation
+namespace Project_ALMF51.Presentation
 {
     public static class BFSEndpoint
     {

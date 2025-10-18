@@ -1,6 +1,6 @@
-﻿using Project_ALMF51.Web.Domain;
+﻿using Project_ALMF51.Domain;
 
-namespace Project_ALMF51.Web.Presentation
+namespace Projet_ALMF51.Presentation
 {
     public class BFSRequest
     {

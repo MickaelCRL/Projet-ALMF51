@@ -1,4 +1,4 @@
-﻿using Project_ALMF51.Web.Application;
+﻿using Project_ALMF51.Application;
 using Project_ALMF51.Web.Services;
 
 namespace Project_ALMF51.Web.DependencyInjection
