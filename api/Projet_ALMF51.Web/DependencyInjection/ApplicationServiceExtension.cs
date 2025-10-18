@@ -1,4 +1,4 @@
-﻿using Projet_ALMF51.Application;
+﻿using Projet_ALMF51.Application.bfs;
 
 namespace Projet_ALMF51.Web.DependencyInjection
 {

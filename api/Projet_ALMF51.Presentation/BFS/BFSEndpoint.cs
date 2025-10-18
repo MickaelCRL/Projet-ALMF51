@@ -1,10 +1,9 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
-using Projet_ALMF51.Application;
-using Projet_ALMF51.Presentation;
+using Projet_ALMF51.Application.bfs;
 
-namespace Projet_ALMF51.Presentation
+namespace Projet_ALMF51.Presentation.bfs
 {
     public static class BFSEndpoint
     {

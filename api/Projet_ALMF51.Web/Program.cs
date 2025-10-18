@@ -1,6 +1,6 @@
 using Projet_ALMF51.Web.DependencyInjection;
-using Projet_ALMF51.Presentation;
 using Scalar.AspNetCore;
+using Projet_ALMF51.Presentation.bfs;
 
 const string MyAllowSpecificOrigins = "MyAllowSpecificOrigins";
 

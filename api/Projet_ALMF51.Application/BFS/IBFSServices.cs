@@ -1,6 +1,6 @@
 ﻿using Projet_ALMF51.Domain;
 
-namespace Projet_ALMF51.Application
+namespace Projet_ALMF51.Application.bfs
 {
     public interface IBFSServices
     {

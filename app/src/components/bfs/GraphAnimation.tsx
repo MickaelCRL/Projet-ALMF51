@@ -27,7 +27,7 @@ export default function GraphAnimation() {
     network.body.data.nodes.get().forEach((n: any) =>
       network.body.data.nodes.update({
         id: n.id,
-        color: { background: "#6366f1", border: "#4f46e5" },
+        color: "#6366f1",
       })
     );
     network.body.data.edges
