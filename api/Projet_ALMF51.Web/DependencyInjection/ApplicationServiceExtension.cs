@@ -1,7 +1,6 @@
-﻿using Project_ALMF51.Application;
-using Project_ALMF51.Web.Services;
+﻿using Projet_ALMF51.Application;
 
-namespace Project_ALMF51.Web.DependencyInjection
+namespace Projet_ALMF51.Web.DependencyInjection
 {
     public static class ApplicationServiceExtension
     {

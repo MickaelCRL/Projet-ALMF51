@@ -1,20 +1,19 @@
-﻿using Project_ALMF51.Application;
-using Project_ALMF51.Domain;
+﻿using Projet_ALMF51.Domain;
 
-namespace Project_ALMF51.Web.Services
+namespace Projet_ALMF51.Application
 {
     public class BFSServices : IBFSServices
     {
-        public Dictionary<string, string> Traverse(Graph graph, string start)
+        public BFSResult Traverse(Graph graph, string start)
         {
             var state = new Dictionary<string, string>();
-            var parent = new Dictionary<string, string>();
-            var queue = new List<string>();
+            var parents = new Dictionary<string, string>();
+            var order = new List<string>();
 
             foreach (var x in graph.Nodes)
             {
                 state[x] = "non vu";
-                parent[x] = null;
+                parents[x] = null;
             }
 
             int i = 0;
@@ -22,13 +21,13 @@ namespace Project_ALMF51.Web.Services
 
             if (state[start] == "non vu")
             {
-                queue.Add(start);
+                order.Add(start);
                 state[start] = "vu";
                 j++;
 
                 while (i < j)
                 {
-                    var y = queue[i];
+                    var y = order[i];
                     i++;
 
                     // Pour chaque successeur de y
@@ -41,15 +40,19 @@ namespace Project_ALMF51.Web.Services
                         if (state[z] == "non vu")
                         {
                             state[z] = "vu";
-                            queue.Add(z);
+                            order.Add(z);
                             j++;
-                            parent[z] = y;
+                            parents[z] = y;
                         }
                     }
                 }
             }
 
-            return parent;
+            return new BFSResult
+            {
+                Parents = parents,
+                Order = order
+            };
         }
     }
 }

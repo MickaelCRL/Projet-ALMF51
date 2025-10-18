@@ -1,4 +1,4 @@
-﻿namespace Project_ALMF51.Domain
+﻿namespace Projet_ALMF51.Domain
 {
     public class Graph
     {

@@ -1,9 +1,9 @@
-﻿using Project_ALMF51.Domain;
+﻿using Projet_ALMF51.Domain;
 
-namespace Project_ALMF51.Application
+namespace Projet_ALMF51.Application
 {
     public interface IBFSServices
     {
-        Dictionary<string, string> Traverse(Graph graph, string start);
+        BFSResult Traverse(Graph graph, string start);
     }
 }
