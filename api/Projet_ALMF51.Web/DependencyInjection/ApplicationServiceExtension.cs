@@ -1,5 +1,6 @@
 ﻿using Projet_ALMF51.Application.BFS;
 using Projet_ALMF51.Application.DFS;
+using Projet_ALMF51.Application.Kruskal;
 
 namespace Projet_ALMF51.Web.DependencyInjection
 {
@@ -11,6 +12,7 @@ namespace Projet_ALMF51.Web.DependencyInjection
 
             services.AddTransient<IBFSServices, BFSServices>();
             services.AddTransient<IDFSService, DFSService>();
+            services.AddTransient<IKruskalService, KruskalService>();
         }
     }
 }

@@ -2,6 +2,7 @@ using Projet_ALMF51.Web.DependencyInjection;
 using Scalar.AspNetCore;
 using Projet_ALMF51.Presentation.bfs;
 using Projet_ALMF51.Presentation.DFS;
+using Projet_ALMF51.Presentation.Kruskal;
 
 const string MyAllowSpecificOrigins = "MyAllowSpecificOrigins";
 
@@ -43,5 +44,6 @@ if (app.Environment.IsDevelopment())
 
 app.MapBFSEndpoint();
 app.MapDFSEndpoint();
+app.MapKruskalEndpoints();
 
 app.Run();
