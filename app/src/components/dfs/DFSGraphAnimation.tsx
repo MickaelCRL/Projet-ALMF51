@@ -3,7 +3,7 @@ import { Network, type Edge } from "vis-network/standalone";
 import { Box, Paper, Typography, Button } from "@mui/material";
 import ReplayIcon from "@mui/icons-material/Replay";
 import useSWR from "swr";
-import { getDFSAsync } from "../../services/dfsService";
+import { computeDFSAsync } from "../../services/dfsService";
 import { graph } from "../../data/graph";
 
 type ParentsMap = Record<string, string | null>;
@@ -16,7 +16,7 @@ export default function DFSGraphAnimation() {
   const start = "Rennes";
 
   const { data: dfsResult } = useSWR(["dfs", graph, start], () =>
-    getDFSAsync(graph, start)
+    computeDFSAsync(graph, start)
   );
 
   const runAnimation = () => {

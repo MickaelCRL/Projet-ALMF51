@@ -3,7 +3,7 @@ import { Network, type Edge } from "vis-network/standalone";
 import { Box, Paper, Typography, Button } from "@mui/material";
 import ReplayIcon from "@mui/icons-material/Replay";
 import useSWR from "swr";
-import { getBFSAsync } from "../../services/bfsService";
+import { computeBFSAsync } from "../../services/bfsService";
 import { graph } from "../../data/graph";
 
 type ParentsMap = Record<string, string | null>;
@@ -15,7 +15,7 @@ export default function BFSGraphAnimation() {
 
   const start = "Rennes";
   const { data: bfsResult } = useSWR(["bfs", graph, start], () =>
-    getBFSAsync(graph, start)
+    computeBFSAsync(graph, start)
   );
 
   const runAnimation = () => {

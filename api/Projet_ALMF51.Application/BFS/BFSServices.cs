@@ -4,7 +4,7 @@ namespace Projet_ALMF51.Application.BFS
 {
     public class BFSServices : IBFSServices
     {
-        public BFSResult Traverse(Graph graph, string start)
+        public BFSResult Compute(Graph graph, string start)
         {
             var state = new Dictionary<string, string>();
             var parents = new Dictionary<string, string>();

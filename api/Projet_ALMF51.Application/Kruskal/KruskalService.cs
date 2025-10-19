@@ -4,7 +4,7 @@ namespace Projet_ALMF51.Application.Kruskal
 {
     public class KruskalService : IKruskalService
     {
-        public KruskalResult ComputeMST(Graph graph)
+        public KruskalResult Compute(Graph graph)
         {
 
             var result = new KruskalResult

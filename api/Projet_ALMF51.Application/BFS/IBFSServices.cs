@@ -4,6 +4,6 @@ namespace Projet_ALMF51.Application.BFS
 {
     public interface IBFSServices
     {
-        BFSResult Traverse(Graph graph, string start);
+        BFSResult Compute(Graph graph, string start);
     }
 }

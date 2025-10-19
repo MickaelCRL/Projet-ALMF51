@@ -4,6 +4,6 @@ namespace Projet_ALMF51.Application.DFS
 {
     public interface IDFSService
     {
-        DFSResult Traverse(Graph graph, string start);
+        DFSResult Compute(Graph graph, string start);
     }
 }

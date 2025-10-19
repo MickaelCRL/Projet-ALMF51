@@ -3,6 +3,7 @@ using Scalar.AspNetCore;
 using Projet_ALMF51.Presentation.bfs;
 using Projet_ALMF51.Presentation.DFS;
 using Projet_ALMF51.Presentation.Kruskal;
+using Projet_ALMF51.Presentation.Prim;
 
 const string MyAllowSpecificOrigins = "MyAllowSpecificOrigins";
 
@@ -45,5 +46,6 @@ if (app.Environment.IsDevelopment())
 app.MapBFSEndpoint();
 app.MapDFSEndpoint();
 app.MapKruskalEndpoints();
+app.MapPrimEndpoint();
 
 app.Run();

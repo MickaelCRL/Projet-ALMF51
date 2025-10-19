@@ -3,6 +3,6 @@
     public class DFSResult
     {
         public List<string> Order { get; set; } = new();
-        public Dictionary<string, string?> Parents { get; set; } = new();
+        public Dictionary<string, string> Parents { get; set; } = new();
     }
 }

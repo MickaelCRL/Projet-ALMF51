@@ -13,7 +13,7 @@ namespace Projet_ALMF51.Presentation.DFS
         {
             app.MapPost(DFSRoute, (GraphTraversalRequest request, IDFSService dfs) =>
             {
-                var result = dfs.Traverse(request.Graph, request.Start);
+                var result = dfs.Compute(request.Graph, request.Start);
                 Console.WriteLine("on est la " + result);
                 return Results.Ok(result);
             });

@@ -13,7 +13,7 @@ namespace Projet_ALMF51.Presentation.bfs
         {
             app.MapPost(BFSRoute, (GraphTraversalRequest request, IBFSServices bfs) =>
             {
-                var result = bfs.Traverse(request.Graph, request.Start);
+                var result = bfs.Compute(request.Graph, request.Start);
                 return Results.Ok(result);
             });
 

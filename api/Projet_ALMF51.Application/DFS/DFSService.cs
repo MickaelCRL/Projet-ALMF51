@@ -4,7 +4,7 @@ namespace Projet_ALMF51.Application.DFS
 {
     public class DFSService : IDFSService
     {
-        public DFSResult Traverse(Graph graph, string start)
+        public DFSResult Compute(Graph graph, string start)
         {
             var result = new DFSResult();
             var visited = new HashSet<string>();

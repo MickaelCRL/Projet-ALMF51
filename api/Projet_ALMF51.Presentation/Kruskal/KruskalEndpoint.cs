@@ -12,7 +12,7 @@ namespace Projet_ALMF51.Presentation.Kruskal
         {
             app.MapPost("/kruskal", (Graph graph, IKruskalService kruskal) =>
             {
-                var result = kruskal.ComputeMST(graph);
+                var result = kruskal.Compute(graph);
                 return Results.Ok(result);
             });
         }

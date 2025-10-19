@@ -4,6 +4,6 @@ namespace Projet_ALMF51.Application.Kruskal
 {
     public interface IKruskalService
     {
-        KruskalResult ComputeMST(Graph graph);
+        KruskalResult Compute(Graph graph);
     }
 }
