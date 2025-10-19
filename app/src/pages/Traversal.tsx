@@ -1,17 +1,9 @@
 import { Box, Typography } from "@mui/material";
-import useSWR from "swr";
-import GraphAnimation from "../components/bfs/GraphAnimation";
+import BFSGraphAnimation from "../components/bfs/BFSGraphAnimation";
+import DFSGraphAnimation from "../components/dfs/DFSGraphAnimation";
 import GraphNode from "../components/GraphNode";
-import { graph } from "../data/graph";
-import { getBFSAsync } from "../services/bfsService";
 
 function Traversal() {
-  const start = "Rennes";
-
-  const { data } = useSWR([graph, start], ([graph, start]) =>
-    getBFSAsync(graph, start)
-  );
-  console.log(data);
   return (
     <>
       <Box textAlign="center" mb={1} mt={2}>
@@ -25,12 +17,16 @@ function Traversal() {
             fontSize: { xs: "28px", md: "32px" },
           }}
         >
-          Algorithmes de Graphes
+          Parcours de Graphes
         </Typography>
       </Box>
       <div style={{ display: "flex" }}>
         <GraphNode />
-        <GraphAnimation />
+        <BFSGraphAnimation />
+      </div>
+      <div style={{ display: "flex", marginTop: "20px" }}>
+        <GraphNode />
+        <DFSGraphAnimation />
       </div>
     </>
   );

@@ -1,4 +1,4 @@
-﻿namespace Projet_ALMF51.Application.bfs
+﻿namespace Projet_ALMF51.Application.BFS
 {
     public class BFSResult
     {

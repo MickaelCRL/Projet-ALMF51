@@ -1,4 +1,5 @@
-﻿using Projet_ALMF51.Application.bfs;
+﻿using Projet_ALMF51.Application.BFS;
+using Projet_ALMF51.Application.DFS;
 
 namespace Projet_ALMF51.Web.DependencyInjection
 {
@@ -9,6 +10,7 @@ namespace Projet_ALMF51.Web.DependencyInjection
             var services = builder.Services;
 
             services.AddTransient<IBFSServices, BFSServices>();
+            services.AddTransient<IDFSService, DFSService>();
         }
     }
 }

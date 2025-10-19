@@ -1,6 +1,7 @@
 using Projet_ALMF51.Web.DependencyInjection;
 using Scalar.AspNetCore;
 using Projet_ALMF51.Presentation.bfs;
+using Projet_ALMF51.Presentation.DFS;
 
 const string MyAllowSpecificOrigins = "MyAllowSpecificOrigins";
 
@@ -41,5 +42,6 @@ if (app.Environment.IsDevelopment())
 //app.UseHttpsRedirection();
 
 app.MapBFSEndpoint();
+app.MapDFSEndpoint();
 
 app.Run();

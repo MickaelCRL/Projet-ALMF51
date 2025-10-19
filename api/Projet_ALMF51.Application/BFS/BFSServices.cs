@@ -1,6 +1,6 @@
 ﻿using Projet_ALMF51.Domain;
 
-namespace Projet_ALMF51.Application.bfs
+namespace Projet_ALMF51.Application.BFS
 {
     public class BFSServices : IBFSServices
     {
@@ -30,7 +30,6 @@ namespace Projet_ALMF51.Application.bfs
                     var y = order[i];
                     i++;
 
-                    // Pour chaque successeur de y
                     var voisins = graph.Edges
                         .Where(e => e.From == y)
                         .Select(e => e.To);

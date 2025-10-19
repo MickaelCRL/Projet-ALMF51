@@ -1,8 +1,8 @@
 ﻿using Projet_ALMF51.Domain;
 
-namespace Projet_ALMF51.Presentation.bfs
+namespace Projet_ALMF51.Presentation
 {
-    public class BFSRequest
+    public class GraphTraversalRequest
     {
         public Graph Graph { get; set; }
         public string Start { get; set; }

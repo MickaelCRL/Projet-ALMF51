@@ -8,20 +8,23 @@ import { graph } from "../../data/graph";
 
 type ParentsMap = Record<string, string | null>;
 
-export default function GraphAnimation() {
+export default function BFSGraphAnimation() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const networkRef = useRef<Network | null>(null);
   const [isFinished, setIsFinished] = useState(false);
 
   const start = "Rennes";
-  const { data } = useSWR([graph, start], ([graph, start]) =>
+  const { data: bfsResult } = useSWR(["bfs", graph, start], () =>
     getBFSAsync(graph, start)
   );
 
   const runAnimation = () => {
-    if (!networkRef.current || !data) return;
+    if (!networkRef.current || !bfsResult) return;
 
-    const { order, parents } = data as { order: string[]; parents: ParentsMap };
+    const { order, parents } = bfsResult as {
+      order: string[];
+      parents: ParentsMap;
+    };
     const network = networkRef.current as any;
 
     network.body.data.nodes.get().forEach((n: any) =>
@@ -76,7 +79,7 @@ export default function GraphAnimation() {
   };
 
   useEffect(() => {
-    if (!containerRef.current || !data) return;
+    if (!containerRef.current || !bfsResult) return;
 
     const nodes = graph.nodes.map((city) => ({
       id: city,
@@ -84,7 +87,7 @@ export default function GraphAnimation() {
       color: "#6366f1",
     }));
 
-    const edges: Edge[] = Object.entries(data.parents)
+    const edges: Edge[] = Object.entries(bfsResult.parents)
       .filter(([_, parent]) => parent !== null)
       .map(([child, parent]) => ({
         id: `${parent}->${child}`,
@@ -110,7 +113,7 @@ export default function GraphAnimation() {
     );
 
     runAnimation();
-  }, [data]);
+  }, [bfsResult]);
 
   return (
     <Box
