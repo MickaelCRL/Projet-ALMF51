@@ -1,13 +1,14 @@
 ﻿using Projet_ALMF51.Domain;
+using Projet_ALMF51.Domain.Results;
 
 namespace Projet_ALMF51.Application.Kruskal
 {
     public class KruskalService : IKruskalService
     {
-        public KruskalResult Compute(Graph graph)
+        public MSTResult Compute(Graph graph)
         {
 
-            var result = new KruskalResult
+            var result = new MSTResult
             {
                 Edges = new List<Edge>(),
                 TotalCost = 0

@@ -1,10 +1,11 @@
 ﻿using Projet_ALMF51.Domain;
+using Projet_ALMF51.Domain.Results;
 
 namespace Projet_ALMF51.Application.BFS
 {
     public class BFSServices : IBFSServices
     {
-        public BFSResult Compute(Graph graph, string start)
+        public TraversalResult Compute(Graph graph, string start)
         {
             var state = new Dictionary<string, string>();
             var parents = new Dictionary<string, string>();
@@ -47,7 +48,7 @@ namespace Projet_ALMF51.Application.BFS
                 }
             }
 
-            return new BFSResult
+            return new TraversalResult
             {
                 Parents = parents,
                 Order = order

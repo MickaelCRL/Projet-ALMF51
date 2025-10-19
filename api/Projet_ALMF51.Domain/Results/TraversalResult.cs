@@ -1,6 +1,6 @@
-﻿namespace Projet_ALMF51.Application.BFS
+﻿namespace Projet_ALMF51.Domain.Results
 {
-    public class BFSResult
+    public class TraversalResult
     {
         public List<string> Order { get; set; } = new();
         public Dictionary<string, string> Parents { get; set; } = new();

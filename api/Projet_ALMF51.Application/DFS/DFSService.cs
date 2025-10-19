@@ -1,12 +1,13 @@
 ﻿using Projet_ALMF51.Domain;
+using Projet_ALMF51.Domain.Results;
 
 namespace Projet_ALMF51.Application.DFS
 {
     public class DFSService : IDFSService
     {
-        public DFSResult Compute(Graph graph, string start)
+        public TraversalResult Compute(Graph graph, string start)
         {
-            var result = new DFSResult();
+            var result = new TraversalResult();
             var visited = new HashSet<string>();
 
             var adjacencyList = BuildAdjacencyList(graph);
@@ -19,7 +20,7 @@ namespace Projet_ALMF51.Application.DFS
         private void DFSRecursive(
             string current,
             HashSet<string> visited,
-            DFSResult result,
+            TraversalResult result,
             Dictionary<string, List<string>> adjacencyList,
             string parent
         )

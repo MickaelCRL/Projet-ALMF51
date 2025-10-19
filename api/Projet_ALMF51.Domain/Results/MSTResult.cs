@@ -1,8 +1,6 @@
-﻿using Projet_ALMF51.Domain;
-
-namespace Projet_ALMF51.Application.Prim
+﻿namespace Projet_ALMF51.Domain.Results
 {
-    public class PrimResult
+    public class MSTResult
     {
         public List<Edge> Edges { get; set; }
         public int TotalCost { get; set; }
