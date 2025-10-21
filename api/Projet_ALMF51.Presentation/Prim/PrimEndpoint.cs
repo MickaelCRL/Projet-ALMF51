@@ -7,13 +7,15 @@ namespace Projet_ALMF51.Presentation.Prim
 {
     public static class PrimEndpoint
     {
-        public static void MapPrimEndpoint(this IEndpointRouteBuilder app) 
+        public const string PrimRoute = "/prim";
+
+        public static void MapPrimEndpoint(this IEndpointRouteBuilder app)
         {
-            app.MapPost("/prim", (GraphTraversalRequest request, IPrimService prim) =>
-            {
-                var result = prim.Compute(request.Graph, request.Start);
-                return Results.Ok(result);
-            });
+            app.MapPost(PrimRoute, (GraphTraversalRequest request, IPrimService prim) =>
+                {
+                    var result = prim.Compute(request.Graph, request.Start);
+                    return Results.Ok(result);
+                });
         }
     }
 }

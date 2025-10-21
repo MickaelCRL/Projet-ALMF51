@@ -4,6 +4,7 @@ using Projet_ALMF51.Presentation.bfs;
 using Projet_ALMF51.Presentation.DFS;
 using Projet_ALMF51.Presentation.Kruskal;
 using Projet_ALMF51.Presentation.Prim;
+using Projet_ALMF51.Presentation.Dijkstra;
 
 const string MyAllowSpecificOrigins = "MyAllowSpecificOrigins";
 
@@ -47,5 +48,6 @@ app.MapBFSEndpoint();
 app.MapDFSEndpoint();
 app.MapKruskalEndpoints();
 app.MapPrimEndpoint();
+app.MapDijkstraEndpoint();
 
 app.Run();

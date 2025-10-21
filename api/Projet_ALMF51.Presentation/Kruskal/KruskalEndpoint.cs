@@ -8,9 +8,11 @@ namespace Projet_ALMF51.Presentation.Kruskal
 {
     public static class KruskalEndpoint
     {
+        public const string KruskalRoute = "/kruskal";
+
         public static void MapKruskalEndpoints(this IEndpointRouteBuilder app)
         {
-            app.MapPost("/kruskal", (Graph graph, IKruskalService kruskal) =>
+            app.MapPost(KruskalRoute, (Graph graph, IKruskalService kruskal) =>
             {
                 var result = kruskal.Compute(graph);
                 return Results.Ok(result);
