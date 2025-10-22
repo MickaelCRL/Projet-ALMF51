@@ -15,7 +15,9 @@ export const graph: Graph = {
   ],
   edges: [
     { from: "Rennes", to: "Bordeaux", weight: 130 },
+    { from: "Bordeaux", to: "Rennes", weight: 130 },
     { from: "Rennes", to: "Nantes", weight: 45 },
+
     { from: "Rennes", to: "Paris", weight: 110 },
     { from: "Rennes", to: "Caen", weight: 75 },
 
@@ -43,4 +45,5 @@ export const graph: Graph = {
 
     { from: "Lyon", to: "Grenoble", weight: 40 },
   ],
+  isOriented: false,
 };
