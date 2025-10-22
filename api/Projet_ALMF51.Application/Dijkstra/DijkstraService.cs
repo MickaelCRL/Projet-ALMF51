@@ -5,7 +5,7 @@ namespace Projet_ALMF51.Application.Dijkstra
 {
     public class DijkstraService : IDijkstraService
     {
-        public DijkstraResult Compute(Graph graph, string start, string target)
+        public OptimalPathResult Compute(Graph graph, string start, string target)
         {
             var distances = new Dictionary<string, int>();
             var parents = new Dictionary<string, string>();
@@ -56,7 +56,7 @@ namespace Projet_ALMF51.Application.Dijkstra
 
             if (!parents.ContainsKey(target) && start != target)
             {
-                return new DijkstraResult
+                return new OptimalPathResult
                 {
                     Path = new List<string>(),
                     TotalCost = int.MaxValue
@@ -71,7 +71,7 @@ namespace Projet_ALMF51.Application.Dijkstra
 
             path.Reverse();
 
-            return new DijkstraResult
+            return new OptimalPathResult
             {
                 Path = path,
                 TotalCost = distances[target]

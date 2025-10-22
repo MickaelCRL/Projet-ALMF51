@@ -1,6 +1,6 @@
 import type { Graph } from "../models/Graph";
 
-export const graph: Graph = {
+export const graphNegative: Graph = {
   nodes: [
     "Rennes",
     "Nantes",
@@ -30,19 +30,21 @@ export const graph: Graph = {
     { from: "Caen", to: "Paris", weight: 50 },
     { from: "Caen", to: "Lille", weight: 65 },
 
-    { from: "Paris", to: "Lille", weight: 70 },
+    { from: "Paris", to: "Lille", weight: -20 },
     { from: "Paris", to: "Dijon", weight: 60 },
 
     { from: "Dijon", to: "Lyon", weight: 70 },
-    { from: "Dijon", to: "Grenoble", weight: 75 },
+
+    { from: "Dijon", to: "Grenoble", weight: -10 },
+
     { from: "Dijon", to: "Lille", weight: 120 },
     { from: "Dijon", to: "Nancy", weight: 75 },
 
     { from: "Lille", to: "Nancy", weight: 100 },
 
-    { from: "Nancy", to: "Grenoble", weight: 80 },
-    { from: "Nancy", to: "Lyon", weight: 90 },
+    { from: "Nancy", to: "Lyon", weight: -15 },
 
+    { from: "Nancy", to: "Grenoble", weight: 80 },
     { from: "Lyon", to: "Grenoble", weight: 40 },
   ],
   isOriented: false,

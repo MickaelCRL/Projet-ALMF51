@@ -1,8 +1,8 @@
 ﻿using Projet_ALMF51.Domain;
 
-namespace Projet_ALMF51.Presentation.Dijkstra
+namespace Projet_ALMF51.Presentation
 {
-    public class DijkstraRequest
+    public class OptimalPathRequest
     {
         public Graph Graph { get; set; }
         public string Start { get; set; }

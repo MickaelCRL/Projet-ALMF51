@@ -1,9 +1,9 @@
 ﻿using Projet_ALMF51.Domain;
 using Projet_ALMF51.Domain.Results;
 
-namespace Projet_ALMF51.Application.Dijkstra
+namespace Projet_ALMF51.Application.BellmanFord
 {
-    public interface IDijkstraService
+    public interface IBellmanFordService
     {
         OptimalPathResult Compute(Graph graph, string start, string target);
     }
