@@ -4,6 +4,7 @@ import Traversal from "./pages/Traversal";
 import NotFoundPage from "./pages/NotFoundPage";
 import Layout from "./components/Layout";
 import CoveringTree from "./pages/CoveringTree";
+import ShortestPath from "./pages/ShortestPath";
 
 const router = createBrowserRouter([
   {
@@ -23,6 +24,10 @@ const router = createBrowserRouter([
         path: "/arbre-couvrant",
         element: <CoveringTree />,
       },
+      {
+        path: "/chemin-optimal",
+        element : <ShortestPath />
+      }
     ],
   },
 ]);
