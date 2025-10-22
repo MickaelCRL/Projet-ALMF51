@@ -11,7 +11,7 @@ namespace Projet_ALMF51.Presentation.Dijkstra
 
         public static void MapDijkstraEndpoint(this IEndpointRouteBuilder app)
         {
-            app.MapPost(DijkstraRoute, (DijkstraRequest request, IDijkstraService dijkstra) =>
+            app.MapPost(DijkstraRoute, (OptimalPathRequest request, IDijkstraService dijkstra) =>
             {
                 var result = dijkstra.Compute(request.Graph, request.Start, request.Target);
                 return Results.Ok(result);
