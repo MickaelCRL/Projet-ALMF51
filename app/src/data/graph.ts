@@ -15,7 +15,6 @@ export const graph: Graph = {
   ],
   edges: [
     { from: "Rennes", to: "Bordeaux", weight: 130 },
-    { from: "Bordeaux", to: "Rennes", weight: 130 },
     { from: "Rennes", to: "Nantes", weight: 45 },
 
     { from: "Rennes", to: "Paris", weight: 110 },
