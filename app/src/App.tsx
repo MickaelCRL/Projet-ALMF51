@@ -1,42 +1,58 @@
+import {
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Typography,
+} from "@mui/material";
 import useSWR from "swr";
-import { computeKruskalAsync } from "./services/kruskalService";
 import { graph } from "./data/graph";
-import { computePrimAsync } from "./services/primService";
-import { computeDijkstraAsync } from "./services/dijkstraService";
-import { graphNegative } from "./data/graphNegative";
-import { computeBellmanFordAsync } from "./services/bellmanFordService";
+import { computeFloydWarshallAsync } from "./services/floydWarshall";
 
 function App() {
-  const { data: kruskalResult } = useSWR(["kruskal", graph], () =>
-    computeKruskalAsync(graph)
+  const { data: floydwarshall } = useSWR(["floydwarshall", graph], () =>
+    computeFloydWarshallAsync(graph)
   );
 
-  console.log(kruskalResult);
+  if (!floydwarshall) return <div>Loading...</div>;
 
-  const start = "Rennes";
-  const { data: primResult } = useSWR(["primResult", graph, start], () =>
-    computePrimAsync(graph, start)
+  const { distances, next, nodes } = floydwarshall;
+
+  return (
+    <TableContainer component={Paper} style={{ maxHeight: 600 }}>
+      <Table stickyHeader>
+        <TableHead>
+          <TableRow>
+            <TableCell>From / To</TableCell>
+            {nodes.map((n: any, index: any) => (
+              <TableCell key={index} align="center">
+                {n}
+              </TableCell>
+            ))}
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {(nodes as string[]).map((fromNode, i) => (
+            <TableRow key={fromNode}>
+              <TableCell component="th" scope="row">
+                {fromNode}
+              </TableCell>
+              {(nodes as string[]).map((_, j) => (
+                <TableCell key={j} align="center">
+                  <Typography variant="body2">{distances[i][j]}</Typography>
+                  <Typography variant="caption" color="textSecondary">
+                    → {next[i][j]}
+                  </Typography>
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
-
-  console.log(primResult);
-
-  const target = "Lille";
-  const { data: dijkstraResult } = useSWR(
-    ["dijkstraResult", graph, start, target],
-    () => computeDijkstraAsync(graph, start, target)
-  );
-
-  console.log(dijkstraResult);
-
-  const { data: bellmanford } = useSWR(
-    ["bellmanford", graphNegative, start, target],
-    () => computeBellmanFordAsync(graphNegative, start, target)
-  );
-
-  console.log("bellmanford");
-  console.log(bellmanford);
-
-  return <></>;
 }
-
 export default App;

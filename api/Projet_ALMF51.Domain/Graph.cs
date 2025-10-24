@@ -4,5 +4,6 @@
     {
         public List<string> Nodes { get; set; }
         public List<Edge> Edges { get; set; }
+        public bool IsOriented { get; }
     }
 }

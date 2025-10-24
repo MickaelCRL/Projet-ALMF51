@@ -2,6 +2,7 @@
 using Projet_ALMF51.Application.BFS;
 using Projet_ALMF51.Application.DFS;
 using Projet_ALMF51.Application.Dijkstra;
+using Projet_ALMF51.Application.FloydWarshall;
 using Projet_ALMF51.Application.Kruskal;
 using Projet_ALMF51.Application.Prim;
 
@@ -19,6 +20,7 @@ namespace Projet_ALMF51.Web.DependencyInjection
             services.AddTransient<IPrimService, PrimService>();
             services.AddTransient<IDijkstraService, DijkstraService>();
             services.AddTransient<IBellmanFordService, BellmanFordService>();
+            services.AddTransient<IFloydWarshallService, FloydWarshallService>();
         }
     }
 }

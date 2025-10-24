@@ -8,7 +8,7 @@ namespace Projet_ALMF51.Presentation.BellmanFord
     public static class BellmanFordEndpoint
     {
         public const string BellmanFordRoute = "/bellman-ford";
-        public static void MapEndpointBellmanFord(this IEndpointRouteBuilder app)
+        public static void MapBellmanFordEndpoint(this IEndpointRouteBuilder app)
         {
             app.MapPost(BellmanFordRoute, (OptimalPathRequest request, IBellmanFordService bellmanFord) =>
             {
