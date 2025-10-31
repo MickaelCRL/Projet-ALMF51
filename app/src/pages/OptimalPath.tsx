@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 import { Box, Typography } from "@mui/material";
 import BFSGraphAnimation from "../components/bfs/BFSGraphAnimation";
 import DFSGraphAnimation from "../components/dfs/DFSGraphAnimation";
@@ -34,8 +34,3 @@ function Traversal() {
 }
 
 export default Traversal;
-=======
-export default function OptimalPath() {
-  return <div>test</div>;
-}
->>>>>>> f89bb510cc8f502e45bbd95831caaf9336b134cc

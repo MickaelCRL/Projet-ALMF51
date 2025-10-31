@@ -8,12 +8,13 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
+import Lab from "./pages/Lab"
 import useSWR from "swr";
 import { graph } from "./data/graph";
 import { computeFloydWarshallAsync } from "./services/floydWarshall";
 
 function App() {
-  const { data: floydwarshall } = useSWR(["floydwarshall", graph], () =>
+/*  const { data: floydwarshall } = useSWR(["floydwarshall", graph], () =>
     computeFloydWarshallAsync(graph)
   );
 
@@ -53,6 +54,11 @@ function App() {
         </TableBody>
       </Table>
     </TableContainer>
-  );
+  );*/
+  return(
+    <>
+      <Lab></Lab>
+    </>
+  )
 }
 export default App;
