@@ -31,11 +31,14 @@ namespace Projet_ALMF51.Application.BFS
                     var y = order[i];
                     i++;
 
-                    var voisins = graph.Edges
-                        .Where(e => e.From == y)
-                        .Select(e => e.To);
+                    var neighbors = graph.Edges
+                        .Where(e =>
+                            graph.IsOriented ? e.From == y : (e.From == y || e.To == y)
+                        )
+                        .Select(e => e.From == y ? e.To : e.From)
+                        .OrderBy(z => z);
 
-                    foreach (var z in voisins)
+                    foreach (var z in neighbors)
                     {
                         if (state[z] == "non vu")
                         {

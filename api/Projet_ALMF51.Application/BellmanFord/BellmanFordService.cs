@@ -17,29 +17,31 @@ namespace Projet_ALMF51.Application.BellmanFord
             }
 
             distances[start] = 0;
-            parents[start] = null;
 
-            var queue = new Queue<string>();
-            queue.Enqueue(start);
+            int verticesCount = graph.Nodes.Count;
 
-            while (queue.Count > 0)
+            for (int i = 0; i < verticesCount - 1; i++)
             {
-                var t = queue.Dequeue();
-
                 foreach (var edge in graph.Edges)
                 {
-                    if (edge.From == t)
+                    RelaxEdge(edge.From, edge.To, edge.Weight);
+
+                    if (!graph.IsOriented)
                     {
-                        var k = edge.To;
-                        var newDistance = distances[t] + edge.Weight;
+                        RelaxEdge(edge.To, edge.From, edge.Weight);
+                    }
+                }
+            }
 
-                        if (newDistance < distances[k])
-                        {
-                            distances[k] = newDistance;
-                            parents[k] = t;
-
-                            queue.Enqueue(k);
-                        }
+            void RelaxEdge(string from, string to, int weight)
+            {
+                if (distances[from] != int.MaxValue)
+                {
+                    int newDistance = distances[from] + weight;
+                    if (newDistance < distances[to])
+                    {
+                        distances[to] = newDistance;
+                        parents[to] = from;
                     }
                 }
             }
@@ -61,6 +63,7 @@ namespace Projet_ALMF51.Application.BellmanFord
                 path.Add(current);
                 current = parents[current];
             }
+
             path.Reverse();
 
             return new OptimalPathResult

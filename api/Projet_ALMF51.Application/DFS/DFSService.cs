@@ -40,7 +40,6 @@ namespace Projet_ALMF51.Application.DFS
                 }
             }
         }
-
         private Dictionary<string, List<string>> BuildAdjacencyList(Graph graph)
         {
             var adjacencyList = new Dictionary<string, List<string>>();
@@ -55,7 +54,7 @@ namespace Projet_ALMF51.Application.DFS
                 if (!adjacencyList[edge.From].Contains(edge.To))
                     adjacencyList[edge.From].Add(edge.To);
 
-                if (!adjacencyList[edge.To].Contains(edge.From))
+                if (!graph.IsOriented && !adjacencyList[edge.To].Contains(edge.From))
                     adjacencyList[edge.To].Add(edge.From);
             }
 

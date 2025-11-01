@@ -10,38 +10,35 @@ namespace Projet_ALMF51.Application.FloydWarshall
             var nodes = graph.Nodes.ToList();
             int n = nodes.Count;
 
-            const long INF = 1_000_000_000; // plus safe
+            const long INF = long.MaxValue / 4;
 
             var dist = new long[n, n];
             var next = new string?[n, n];
 
-            // Initialisation
             for (int i = 0; i < n; i++)
             {
                 for (int j = 0; j < n; j++)
                 {
                     dist[i, j] = (i == j) ? 0 : INF;
-                    next[i, j] = (i == j) ? nodes[j] : null;
+                    next[i, j] = null;
                 }
             }
 
-            // Remplir les arêtes
             foreach (var edge in graph.Edges)
             {
                 int u = nodes.IndexOf(edge.From);
                 int v = nodes.IndexOf(edge.To);
 
-                dist[u, v] = edge.Weight;
+                dist[u, v] = Math.Min(dist[u, v], edge.Weight);
                 next[u, v] = nodes[v];
 
                 if (!graph.IsOriented)
                 {
-                    dist[v, u] = edge.Weight;
+                    dist[v, u] = Math.Min(dist[v, u], edge.Weight);
                     next[v, u] = nodes[u];
                 }
             }
 
-            // Floyd-Warshall
             for (int k = 0; k < n; k++)
             {
                 for (int i = 0; i < n; i++)
@@ -61,7 +58,6 @@ namespace Projet_ALMF51.Application.FloydWarshall
                 }
             }
 
-            // Conversion jagged arrays
             var distJagged = new long[n][];
             var nextJagged = new string?[n][];
 
@@ -84,8 +80,5 @@ namespace Projet_ALMF51.Application.FloydWarshall
                 Nodes = nodes
             };
         }
-
-
-
     }
 }
