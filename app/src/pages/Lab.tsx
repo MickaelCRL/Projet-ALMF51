@@ -8,6 +8,8 @@ import DFSGraphAnimation from "../components/dfs/DFSGraphAnimation";
 import DijkstraGraphAnimation from "../components/djikstra/DjikstraGraphAnimation";
 import KruskalGraphAnimation from "../components/kruskal/KruskalGraphAnimation";
 import PrimGraphAnimation from "../components/prim/PrimGraphAnimation";
+import BellmanFordGraphAnimation from "../components/bellmanford/BellmanFordGraphAnimation";
+import FloydWarshallGraphAnimation from "../components/floydwarshall/FloydWarshallGraphAnimation";
 // ↑ Si certains n’existent pas encore, commente l’import + le case correspondant.
 
 type AlgoKey =
@@ -48,6 +50,15 @@ export default function Lab() {
             target={target}
           />
         );
+      case "Bellman-Ford":
+        return <BellmanFordGraphAnimation
+          start={start}
+          target={target} 
+        ></BellmanFordGraphAnimation>
+      case "Floyd-Warshall":
+        return <FloydWarshallGraphAnimation 
+        start={start}
+        target={target}></FloydWarshallGraphAnimation>
       case "Kruskal":
         return <KruskalGraphAnimation />;
       case "Prim":
@@ -62,6 +73,7 @@ export default function Lab() {
   const needsTarget = ["Dijkstra", "Bellman-Ford", "Floyd-Warshall"].includes(algo);
 
   return (
+    
     <Box
       sx={{
         display: "grid",

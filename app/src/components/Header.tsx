@@ -11,9 +11,6 @@ function Header() {
   const navigate = useNavigate();
 
   const navItems = [
-    { label: "Parcours", path: "/parcours" },
-    { label: "Arbre couvrant", path: "/arbre-couvrant" },
-    { label: "Chemin optimal", path: "/chemin-optimal" },
     { label: "À propos", path: "/a-propos" },
   ];
 

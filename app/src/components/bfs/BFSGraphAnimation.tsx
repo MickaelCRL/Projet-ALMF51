@@ -12,16 +12,15 @@ import useSWR from "swr";
 import { computeBFSAsync } from "../../services/bfsService";
 import { graph } from "../../data/graph";
 
+const STEP_MS = 800;
 type ParentsMap = Record<string, string | null>;
 
-// ✅ props supplémentaires : onSummaryChange, onLog
 type BFSProps = {
   start: string;
   onSummaryChange?: (summary: Record<string, any>) => void;
   onLog?: (message: string) => void;
 };
 
-// ✅ ref exposée à la barre commune
 export type BFSHandle = {
   play: () => void;
   pause: () => void;
@@ -29,143 +28,193 @@ export type BFSHandle = {
   step: () => void;
 };
 
+// -- rend le graphe non orienté pour l’API
+function expandUndirected<G extends { edges: any[]; isOriented?: boolean }>(g: G): G {
+  if (g.isOriented) return g;
+  const edges: any[] = [];
+  const seen = new Set<string>();
+  for (const e of g.edges) {
+    const k1 = `${e.from}|${e.to}`;
+    const k2 = `${e.to}|${e.from}`;
+    if (!seen.has(k1)) {
+      edges.push({ ...e });
+      seen.add(k1);
+    }
+    if (!seen.has(k2)) {
+      edges.push({ from: e.to, to: e.from, weight: e.weight });
+      seen.add(k2);
+    }
+  }
+  return { ...(g as any), edges, isOriented: false };
+}
+
 const BFSGraphAnimation = forwardRef<BFSHandle, BFSProps>(
   ({ start, onSummaryChange, onLog }, ref) => {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const networkRef = useRef<Network | null>(null);
-
     const [isFinished, setIsFinished] = useState(false);
     const [playing, setPlaying] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [order, setOrder] = useState<string[]>([]);
-    const [parents, setParents] = useState<ParentsMap>({});
-    const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null);
 
-    // Récupération des données via SWR
-    const { data: bfsResult } = useSWR(["bfs", graph, start], () =>
-      computeBFSAsync(graph, start)
+    const G = useRef(expandUndirected(graph)).current;
+    const orderRef = useRef<string[]>([]);
+    const parentsRef = useRef<ParentsMap>({});
+    const intervalRef = useRef<number | null>(null);
+
+    const { data: bfsResult } = useSWR(["bfs-tree", start], () =>
+      computeBFSAsync(G as any, start)
     );
 
-    // --- Initialisation du graphe ---
+    const clearTimer = () => {
+      if (intervalRef.current) {
+        window.clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+
+    const resetAll = () => {
+      const n: any = networkRef.current;
+      if (!n) return;
+      // supprimer toutes les arêtes
+      const allEdges = n.body.data.edges.get().map((e: any) => e.id);
+      n.body.data.edges.remove(allEdges);
+      // réinitialiser les nœuds
+      n.body.data.nodes.get().forEach((node: any) =>
+        n.body.data.nodes.update({
+          id: node.id,
+          color: "#6366f1",
+        })
+      );
+    };
+
+    const addEdge = (from: string, to: string) => {
+      const n: any = networkRef.current;
+      if (!n) return;
+      const id = `${from}->${to}`;
+      if (!n.body.data.edges.get(id)) {
+        n.body.data.edges.add({
+          id,
+          from,
+          to,
+          color: "#22c55e",
+          width: 3.5,
+        } as Edge);
+      }
+    };
+
+    // --- Initialisation du graphe (positions physiques normales)
     useEffect(() => {
       if (!containerRef.current || !bfsResult) return;
 
-      const nodes = graph.nodes.map((city) => ({
+      const nodes = G.nodes.map((city: string) => ({
         id: city,
         label: city,
         color: "#6366f1",
       }));
 
-      const edges: Edge[] = Object.entries(bfsResult.parents)
-        .filter(([_, parent]) => parent !== null)
-        .map(([child, parent]) => ({
-          id: `${parent}->${child}`,
-          from: parent as string,
-          to: child as string,
-          color: "#64748b",
-        }));
-
-      const options = {
-        nodes: { shape: "dot", size: 22, borderWidth: 2 },
-        edges: {
-          arrows: { to: true },
-          width: 2.5,
-          smooth: { enabled: true, type: "cubicBezier", roundness: 0.4 },
-        },
-        physics: { enabled: true },
-      };
-
+      // On ne met AUCUNE arête au départ
       networkRef.current = new Network(
         containerRef.current,
-        { nodes, edges },
-        options
+        { nodes, edges: [] },
+        {
+          nodes: { shape: "dot", size: 22, borderWidth: 2 },
+          edges: { arrows: { to: false }, smooth: true },
+          physics: {
+            enabled: true,
+            solver: "forceAtlas2Based",
+            stabilization: { iterations: 200 },
+          },
+          interaction: { hover: true },
+        }
       );
 
-      setOrder(bfsResult.order);
-      setParents(bfsResult.parents);
+      orderRef.current = bfsResult.order || [];
+      parentsRef.current = bfsResult.parents || {};
+
       setIsFinished(false);
+      setPlaying(false);
       setCurrentIndex(0);
+      clearTimer();
+      resetAll();
 
-      // ✅ résumé et log initiaux
-      onSummaryChange?.({
-        algo: "BFS",
-        order: bfsResult.order,
-        start,
-      });
-      onLog?.(`BFS initialisé à partir de ${start}.`);
+      onSummaryChange?.({ algo: "BFS (arbre libre)", order: orderRef.current, start });
+      onLog?.(`BFS initialisé depuis ${start}`);
 
-      runStep(0); // coloration du premier nœud
-    }, [bfsResult]);
-
-    // --- Étape unique ---
-    const runStep = (i: number) => {
-      if (!networkRef.current || !bfsResult) return;
-      const network = networkRef.current as any;
-
-      if (i === 0) {
-        const first = order[0];
-        network.body.data.nodes.update({
+      // couleur du point de départ
+      if (orderRef.current.length > 0) {
+        const first = orderRef.current[0];
+        (networkRef.current as any).body.data.nodes.update({
           id: first,
           color: { background: "#a5b4fc", border: "#6366f1" },
         });
-        onLog?.(`Départ depuis ${first}.`);
-        return;
       }
 
-      if (i < order.length) {
-        const prev = order[i - 1];
-        const current = order[i];
-        const parent = parents[current];
+      setPlaying(true);
 
-        network.body.data.nodes.update({
-          id: prev,
-          color: { background: "#6366f1", border: "#4f46e5" },
-        });
+      return () => {
+        clearTimer();
+        networkRef.current?.destroy();
+        networkRef.current = null;
+      };
+    }, [bfsResult, start]);
 
-        network.body.data.nodes.update({
-          id: current,
-          color: { background: "#a5b4fc", border: "#6366f1" },
-        });
+    // --- Étape d’animation
+    const runStep = (i: number) => {
+      const n: any = networkRef.current;
+      const order = orderRef.current;
+      const parents = parentsRef.current;
+      if (!n || i <= 0 || i >= order.length) return;
 
-        if (parent) {
-          const edgeId = `${parent}->${current}`;
-          network.body.data.edges.update({ id: edgeId, color: "red" });
-          onLog?.(`Découverte : ${parent} → ${current}`);
-        }
+      const prev = order[i - 1];
+      const current = order[i];
+      const parent = parents[current];
 
-        setCurrentIndex(i);
-      } else {
+      // prev devient visité
+      n.body.data.nodes.update({
+        id: prev,
+        color: { background: "#6366f1", border: "#4f46e5" },
+      });
+
+      // on crée l’arête (parent, current)
+      if (parent) {
+        addEdge(parent, current);
+        onLog?.(`Nouvelle connexion : ${parent} → ${current}`);
+      }
+
+      n.body.data.nodes.update({
+        id: current,
+        color: { background: "#a5b4fc", border: "#6366f1" },
+      });
+
+      setCurrentIndex(i);
+      if (i === order.length - 1) {
         setIsFinished(true);
         setPlaying(false);
-        onLog?.("BFS terminé ✅");
+        onLog?.("✅ BFS terminé !");
       }
     };
 
-    // --- Animation automatique ---
+    // --- Animation automatique
     useEffect(() => {
-      if (!playing) {
-        if (intervalId) clearInterval(intervalId);
-        return;
-      }
-
-      const id = setInterval(() => {
-        setCurrentIndex((prev) => {
-          const next = prev + 1;
-          runStep(next);
-          if (next >= order.length) {
-            clearInterval(id);
-            setIsFinished(true);
-            setPlaying(false);
-          }
-          return next;
-        });
-      }, 1000);
-
-      setIntervalId(id);
-      return () => clearInterval(id);
+      clearTimer();
+      if (!playing) return;
+      let idx = currentIndex;
+      intervalRef.current = window.setInterval(() => {
+        const order = orderRef.current;
+        if (idx + 1 < order.length) {
+          runStep(idx + 1);
+          idx++;
+        } else {
+          clearTimer();
+          setIsFinished(true);
+          setPlaying(false);
+        }
+      }, STEP_MS);
+      return clearTimer;
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [playing]);
 
-    // --- Expose les contrôles pour la barre commune ---
+    // --- Contrôles
     useImperativeHandle(ref, () => ({
       play: () => {
         if (!isFinished && !playing) {
@@ -174,66 +223,48 @@ const BFSGraphAnimation = forwardRef<BFSHandle, BFSProps>(
         }
       },
       pause: () => {
+        clearTimer();
         setPlaying(false);
         onLog?.("⏸️ Pause BFS");
       },
       reset: () => {
+        clearTimer();
         setPlaying(false);
         setCurrentIndex(0);
-        if (networkRef.current) {
-          networkRef.current.body.data.nodes.get().forEach((n: any) =>
-            networkRef.current!.body.data.nodes.update({
-              id: n.id,
-              color: "#6366f1",
-            })
-          );
-          networkRef.current.body.data.edges
-            .get()
-            .forEach((e: any) =>
-              networkRef.current!.body.data.edges.update({
-                id: e.id,
-                color: "#64748b",
-              })
-            );
+        resetAll();
+        if (orderRef.current.length > 0) {
+          const first = orderRef.current[0];
+          (networkRef.current as any).body.data.nodes.update({
+            id: first,
+            color: { background: "#a5b4fc", border: "#6366f1" },
+          });
         }
         setIsFinished(false);
-        onLog?.("↺ Réinitialisation du BFS");
-        runStep(0);
+        onLog?.("↺ Réinitialisation BFS");
       },
       step: () => {
-        const next = currentIndex + 1;
-        runStep(next);
-        setCurrentIndex(next);
-        onLog?.(`⏭ Étape suivante (${next}/${order.length})`);
+        const order = orderRef.current;
+        const next = Math.min(currentIndex + 1, Math.max(order.length - 1, 0));
+        if (next !== currentIndex) {
+          runStep(next);
+          onLog?.(`Étape ${next}/${order.length - 1}`);
+        }
       },
     }));
 
     return (
-      <Box
-        display="flex"
-        flexDirection="column"
-        alignItems="center"
-        sx={{ p: { xs: 3, md: 5 } }}
-      >
-        <Typography
-          variant="body1"
-          sx={{
-            color: "#64748b",
-            fontFamily: "Inter, system-ui, sans-serif",
-            fontSize: "16px",
-            mb: 2,
-          }}
-        >
-          Parcours BFS du graphe
+      <Box display="flex" flexDirection="column" alignItems="center" sx={{ p: { xs: 3, md: 5 } }}>
+        <Typography variant="body1" sx={{ color: "#64748b", fontSize: 16, mb: 2 }}>
+          BFS — Construction de l’arbre dans l’espace
         </Typography>
 
         <Paper
           ref={containerRef}
           elevation={6}
           sx={{
-            height: "400px",
+            height: 460,
             width: "100%",
-            maxWidth: "600px",
+            maxWidth: 760,
             border: "2px solid #cbd5e1",
             borderRadius: "16px",
             backgroundColor: "#ffffff",
@@ -242,18 +273,14 @@ const BFSGraphAnimation = forwardRef<BFSHandle, BFSProps>(
 
         {isFinished && (
           <Button
-            onClick={() => {
-              setCurrentIndex(0);
-              setPlaying(false);
-              runStep(0);
-              onLog?.("🔁 Rejouer BFS");
-            }}
             startIcon={<ReplayIcon />}
-            sx={{
-              mt: 2,
-              textTransform: "none",
-              fontSize: "16px",
-              color: "black",
+            sx={{ mt: 2, textTransform: "none", color: "black" }}
+            onClick={() => {
+              resetAll();
+              setPlaying(true);
+              setIsFinished(false);
+              setCurrentIndex(0);
+              onLog?.("🔁 Rejouer BFS");
             }}
           >
             Rejouer

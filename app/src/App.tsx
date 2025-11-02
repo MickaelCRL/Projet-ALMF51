@@ -11,7 +11,7 @@ import {
 import Lab from "./pages/Lab"
 import useSWR from "swr";
 import { graph } from "./data/graph";
-import { computeFloydWarshallAsync } from "./services/floydWarshall";
+import { computeFloydWarshallAsync } from "./services/floydWarshallService";
 
 function App() {
 /*  const { data: floydwarshall } = useSWR(["floydwarshall", graph], () =>

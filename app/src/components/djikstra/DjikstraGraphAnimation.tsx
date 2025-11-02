@@ -61,7 +61,6 @@ const DijkstraGraphAnimation = forwardRef<DijkstraHandle, DijkstraProps>(
     const [cost, setCost] = useState<number | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [running, setRunning] = useState(false);
-    const [path, setPath] = useState<string[]>([]);
     const [pairs, setPairs] = useState<Array<[string, string]>>([]);
     const [currentStep, setCurrentStep] = useState(0);
 
@@ -104,7 +103,7 @@ const DijkstraGraphAnimation = forwardRef<DijkstraHandle, DijkstraProps>(
       };
     }, []);
 
-    // --- Utilitaires internes ---
+    // --- Utilitaires ---
     const clearTimer = () => {
       if (timerRef.current) {
         window.clearInterval(timerRef.current);
@@ -146,11 +145,9 @@ const DijkstraGraphAnimation = forwardRef<DijkstraHandle, DijkstraProps>(
       });
     };
 
-    // --- Animation d’une arête ---
-    const runStep = (i: number) => {
+    // --- Coloration d'une arête ---
+    const colorEdgeAndNode = (u: string, v: string) => {
       if (!networkRef.current) return;
-      const [u, v] = pairs[i] ?? [];
-      if (!u || !v) return;
       const e = findEdgeBetween(u, v);
       if (e) {
         (networkRef.current as any).body.data.edges.update({
@@ -158,13 +155,12 @@ const DijkstraGraphAnimation = forwardRef<DijkstraHandle, DijkstraProps>(
           color: "#22c55e",
           width: 4,
         });
-        onLog?.(`Relaxation (${u} → ${v})`);
       }
-      setCurrentStep(i + 1);
-      if (i + 1 === pairs.length) {
-        onLog?.("✅ Chemin final coloré");
-        setRunning(false);
-      }
+      (networkRef.current as any).body.data.nodes.update({
+        id: v,
+        color: { background: "#bbf7d0", border: "#22c55e" },
+      });
+      onLog?.(`Relaxation (${u} → ${v})`);
     };
 
     // --- Lancer Dijkstra ---
@@ -192,25 +188,24 @@ const DijkstraGraphAnimation = forwardRef<DijkstraHandle, DijkstraProps>(
           start1,
           target1
         );
-        const path: string[] = (res.Path ?? res.path ?? []) as string[];
+        const pathNow: string[] = (res.Path ?? res.path ?? []) as string[];
         const totalCost: number | null = (res.TotalCost ??
           res.totalCost ??
           null) as number | null;
 
-        if (!path || path.length === 0) {
+        if (!pathNow || pathNow.length === 0) {
           setRunning(false);
           setError("Aucun chemin trouvé par l’API.");
           return;
         }
 
-        setPath(path);
         setCost(totalCost);
         paintEndpoints(start1, target1);
 
-        const newPairs: Array<[string, string]> = [];
-        for (let i = 0; i < path.length - 1; i++)
-          newPairs.push([path[i], path[i + 1]]);
-        setPairs(newPairs);
+        const localPairs: Array<[string, string]> = [];
+        for (let i = 0; i < pathNow.length - 1; i++)
+          localPairs.push([pathNow[i], pathNow[i + 1]]);
+        setPairs(localPairs);
         setCurrentStep(0);
 
         onSummaryChange?.({
@@ -218,19 +213,28 @@ const DijkstraGraphAnimation = forwardRef<DijkstraHandle, DijkstraProps>(
           start: start1,
           target: target1,
           distance: totalCost,
-          path,
+          path: pathNow,
         });
-        onLog?.(`Chemin trouvé (${path.join(" → ")}), coût = ${totalCost}`);
+        onLog?.(`Chemin trouvé (${pathNow.join(" → ")}), coût = ${totalCost}`);
 
         networkRef.current.fit({
-          nodes: path,
+          nodes: pathNow,
           animation: { duration: 800, easingFunction: "easeInOutQuad" },
         });
 
-        // Animation auto
+        // ✅ Animation robuste : index local
+        let idx = 0;
         timerRef.current = window.setInterval(() => {
-          runStep(currentStep);
-          setCurrentStep((s) => s + 1);
+          if (idx < localPairs.length) {
+            const [u, v] = localPairs[idx];
+            colorEdgeAndNode(u, v);
+            setCurrentStep(idx + 1);
+            idx++;
+          } else {
+            clearTimer();
+            setRunning(false);
+            onLog?.("✅ Chemin final coloré");
+          }
         }, 1000);
       } catch (e: any) {
         setRunning(false);
@@ -253,12 +257,22 @@ const DijkstraGraphAnimation = forwardRef<DijkstraHandle, DijkstraProps>(
     // --- Expose les contrôles à la barre commune ---
     useImperativeHandle(ref, () => ({
       play: () => {
-        if (pairs.length === 0 || running) return;
+        if (running || !pairs.length) return;
         setRunning(true);
         onLog?.("▶️ Lecture Dijkstra");
+        let idx = currentStep;
+        clearTimer();
         timerRef.current = window.setInterval(() => {
-          runStep(currentStep);
-          setCurrentStep((s) => s + 1);
+          if (idx < pairs.length) {
+            const [u, v] = pairs[idx];
+            colorEdgeAndNode(u, v);
+            setCurrentStep(idx + 1);
+            idx++;
+          } else {
+            clearTimer();
+            setRunning(false);
+            onLog?.("✅ Chemin final coloré");
+          }
         }, 1000);
       },
       pause: () => {
@@ -267,7 +281,17 @@ const DijkstraGraphAnimation = forwardRef<DijkstraHandle, DijkstraProps>(
         onLog?.("⏸️ Pause Dijkstra");
       },
       reset: handleReset,
-      step: () => runStep(currentStep),
+      step: () => {
+        if (currentStep < pairs.length) {
+          const [u, v] = pairs[currentStep];
+          colorEdgeAndNode(u, v);
+          setCurrentStep(currentStep + 1);
+          if (currentStep + 1 === pairs.length) {
+            setRunning(false);
+            onLog?.("✅ Chemin final coloré");
+          }
+        }
+      },
     }));
 
     return (

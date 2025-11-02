@@ -22,14 +22,14 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import { graph } from "../../data/graph";
 import { computePrimAsync } from "../../services/primService";
 
-// 🔹 Props + callbacks
+const STEP_MS = 900;
+
 type PrimProps = {
   start: string;
   onSummaryChange?: (summary: Record<string, any>) => void;
   onLog?: (msg: string) => void;
 };
 
-// 🔹 Ref exposée
 export type PrimHandle = {
   play: () => void;
   pause: () => void;
@@ -37,23 +37,59 @@ export type PrimHandle = {
   step: () => void;
 };
 
+function orderTreeEdgesFromStart(pairs: Array<[string, string]>, start: string) {
+  const adj = new Map<string, Set<string>>();
+  for (const [u, v] of pairs) {
+    if (!adj.has(u)) adj.set(u, new Set());
+    if (!adj.has(v)) adj.set(v, new Set());
+    adj.get(u)!.add(v);
+    adj.get(v)!.add(u);
+  }
+  if (!adj.has(start)) return pairs;
+
+  const visitedNode = new Set<string>();
+  const visitedEdge = new Set<string>();
+  const out: Array<[string, string]> = [];
+  const edgeKey = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`);
+
+  const stack = [start];
+  visitedNode.add(start);
+  while (stack.length) {
+    const u = stack.pop()!;
+    for (const v of adj.get(u) ?? []) {
+      const k = edgeKey(u, v);
+      if (!visitedEdge.has(k)) {
+        visitedEdge.add(k);
+        if (!visitedNode.has(v)) {
+          visitedNode.add(v);
+          out.push([u, v]);
+          stack.push(v);
+        }
+      }
+    }
+  }
+  return out.length ? out : pairs;
+}
+
 const PrimGraphAnimation = forwardRef<PrimHandle, PrimProps>(
   ({ start, onSummaryChange, onLog }, ref) => {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const networkRef = useRef<Network | null>(null);
-    const timerRef = useRef<number | null>(null);
+    const intervalRef = useRef<number | null>(null);
 
     const cities = useMemo(() => [...graph.nodes].sort(), []);
     const [start1, setStart1] = useState<string>(start);
     const [running, setRunning] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [total, setTotal] = useState<number | null>(null);
-    const [pairs, setPairs] = useState<Array<[string, string]>>([]);
     const [currentStep, setCurrentStep] = useState(0);
 
-    // --- Initialisation du graphe vis-network ---
+    // ✅ pairsRef = source de vérité immédiate (évite le délai de setState)
+    const pairsRef = useRef<Array<[string, string]>>([]);
+
     useEffect(() => {
       if (!containerRef.current) return;
+
       const nodes = graph.nodes.map((city) => ({
         id: city,
         label: city,
@@ -80,18 +116,26 @@ const PrimGraphAnimation = forwardRef<PrimHandle, PrimProps>(
       );
 
       return () => {
-        clearInterval(timerRef.current ?? undefined);
+        clearTimer();
         networkRef.current?.destroy();
+        networkRef.current = null;
       };
     }, []);
 
-    // --- Fonctions utilitaires ---
+    const clearTimer = () => {
+      if (intervalRef.current) {
+        window.clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+
     const resetColors = () => {
       const n: any = networkRef.current;
-      n?.body.data.nodes.get().forEach((node: any) =>
+      if (!n) return;
+      n.body.data.nodes.get().forEach((node: any) =>
         n.body.data.nodes.update({ id: node.id, color: "#6366f1" })
       );
-      n?.body.data.edges.get().forEach((edge: any) =>
+      n.body.data.edges.get().forEach((edge: any) =>
         n.body.data.edges.update({ id: edge.id, color: "#64748b", width: 2.5 })
       );
     };
@@ -105,19 +149,34 @@ const PrimGraphAnimation = forwardRef<PrimHandle, PrimProps>(
       );
     };
 
-    // --- Étape unique ---
-    const runStep = (i: number) => {
-      const [u, v] = pairs[i] ?? [];
-      if (!u || !v) return;
+    const colorEdgeAndNodes = (u: string, v: string) => {
+      const n: any = networkRef.current;
+      if (!n) return;
       const e = findEdgeBetween(u, v);
       if (e) {
-        (networkRef.current as any).body.data.edges.update({
+        n.body.data.edges.update({
           id: e.id,
           color: "#22c55e",
           width: 4,
         });
-        onLog?.(`Ajout de l’arête (${u}–${v})`);
       }
+      n.body.data.nodes.update({
+        id: u,
+        color: { background: "#bbf7d0", border: "#22c55e" },
+      });
+      n.body.data.nodes.update({
+        id: v,
+        color: { background: "#bbf7d0", border: "#22c55e" },
+      });
+      onLog?.(`Ajout de l’arête (${u}–${v})`);
+    };
+
+    // ✅ lit depuis pairsRef (synchrone)
+    const runStep = (i: number) => {
+      const pairs = pairsRef.current;
+      if (i >= pairs.length) return;
+      const [u, v] = pairs[i];
+      colorEdgeAndNodes(u, v);
       setCurrentStep(i + 1);
       if (i + 1 >= pairs.length) {
         setRunning(false);
@@ -125,7 +184,6 @@ const PrimGraphAnimation = forwardRef<PrimHandle, PrimProps>(
       }
     };
 
-    // --- Lancer Prim ---
     const handleRun = async () => {
       if (!networkRef.current) return;
       if (!start1) {
@@ -137,7 +195,15 @@ const PrimGraphAnimation = forwardRef<PrimHandle, PrimProps>(
       setTotal(null);
       setRunning(true);
       resetColors();
+      setCurrentStep(0);
+      clearTimer();
       onLog?.(`Lancement de Prim depuis ${start1}`);
+
+      // met en avant le départ
+      (networkRef.current as any).body.data.nodes.update({
+        id: start1,
+        color: { background: "#fde68a", border: "#f59e0b" },
+      });
 
       try {
         const res = await computePrimAsync(graph as any, start1);
@@ -149,26 +215,31 @@ const PrimGraphAnimation = forwardRef<PrimHandle, PrimProps>(
           return;
         }
 
-        setTotal(totalCost);
-        const p = edges.map((e: any) => [e.from, e.to]) as Array<[string, string]>;
-        setPairs(p);
-        setCurrentStep(0);
+        const pRaw = edges.map((e: any) => [e.from, e.to]) as Array<[string, string]>;
+        const p = orderTreeEdgesFromStart(pRaw, start1);
 
+        // ✅ stocke immédiatement dans la ref AVANT de démarrer l’interval
+        pairsRef.current = p;
+
+        setTotal(totalCost);
         onSummaryChange?.({
           algo: "Prim",
           start: start1,
           edges: edges.length,
           cost: totalCost,
         });
+        onLog?.(`Prim sélectionne ${edges.length} arêtes (coût total = ${totalCost})`);
 
-        onLog?.(
-          `Prim sélectionne ${edges.length} arêtes (coût total = ${totalCost})`
-        );
-
-        timerRef.current = window.setInterval(() => {
-          runStep(currentStep);
-          setCurrentStep((s) => s + 1);
-        }, 1000);
+        // ✅ animation avec index local et lecture dans pairsRef
+        let idx = 0;
+        intervalRef.current = window.setInterval(() => {
+          runStep(idx);
+          idx++;
+          if (idx >= pairsRef.current.length) {
+            clearTimer();
+            setRunning(false);
+          }
+        }, STEP_MS);
       } catch (err: any) {
         setError(err?.message || "Erreur API /prim.");
         setRunning(false);
@@ -176,24 +247,29 @@ const PrimGraphAnimation = forwardRef<PrimHandle, PrimProps>(
       }
     };
 
-    // --- Expose les contrôles à la barre commune ---
     useImperativeHandle(ref, () => ({
       play: () => {
-        if (pairs.length === 0 || running) return;
+        if (!pairsRef.current.length || running) return;
         setRunning(true);
         onLog?.("▶️ Lecture Prim");
-        timerRef.current = window.setInterval(() => {
-          runStep(currentStep);
-          setCurrentStep((s) => s + 1);
-        }, 1000);
+        let idx = currentStep;
+        clearTimer();
+        intervalRef.current = window.setInterval(() => {
+          runStep(idx);
+          idx++;
+          if (idx >= pairsRef.current.length) {
+            clearTimer();
+            setRunning(false);
+          }
+        }, STEP_MS);
       },
       pause: () => {
-        clearInterval(timerRef.current ?? undefined);
+        clearTimer();
         setRunning(false);
         onLog?.("⏸️ Pause Prim");
       },
       reset: () => {
-        clearInterval(timerRef.current ?? undefined);
+        clearTimer();
         resetColors();
         setRunning(false);
         setTotal(null);
@@ -206,12 +282,7 @@ const PrimGraphAnimation = forwardRef<PrimHandle, PrimProps>(
     }));
 
     return (
-      <Box
-        display="flex"
-        flexDirection="column"
-        alignItems="center"
-        sx={{ p: 3 }}
-      >
+      <Box display="flex" flexDirection="column" alignItems="center" sx={{ p: 3 }}>
         <Typography variant="body1" sx={{ mb: 2 }}>
           Algorithme de Prim
         </Typography>
@@ -263,7 +334,10 @@ const PrimGraphAnimation = forwardRef<PrimHandle, PrimProps>(
             variant="outlined"
             startIcon={<ReplayIcon />}
             onClick={() => {
+              clearTimer();
               resetColors();
+              setRunning(false);
+              setCurrentStep(0);
               onLog?.("Réinitialisation manuelle Prim");
             }}
           >
