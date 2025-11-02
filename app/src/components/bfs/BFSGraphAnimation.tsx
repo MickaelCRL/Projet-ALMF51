@@ -1,3 +1,4 @@
+// BFSGraphAnimation.tsx
 import React, {
   useEffect,
   useRef,
@@ -6,16 +7,19 @@ import React, {
   useImperativeHandle,
 } from "react";
 import { Network, type Edge } from "vis-network/standalone";
-import { Box, Paper, Typography, Button } from "@mui/material";
+import { Box, Paper, Typography, Button, Chip, Stack } from "@mui/material";
 import ReplayIcon from "@mui/icons-material/Replay";
-import useSWR from "swr";
+import PauseIcon from "@mui/icons-material/Pause";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import { computeBFSAsync } from "../../services/bfsService";
 import { graph } from "../../data/graph";
 
 const STEP_MS = 800;
+
 type ParentsMap = Record<string, string | null>;
 
 type BFSProps = {
+  /** Sommet demandé par le parent */
   start: string;
   onSummaryChange?: (summary: Record<string, any>) => void;
   onLog?: (message: string) => void;
@@ -28,9 +32,8 @@ export type BFSHandle = {
   step: () => void;
 };
 
-// -- rend le graphe non orienté pour l’API
-function expandUndirected<G extends { edges: any[]; isOriented?: boolean }>(g: G): G {
-  if (g.isOriented) return g;
+// -- duplique les arêtes dans les 2 sens (graphe non orienté pour l’API)
+function expandUndirected<G extends { edges: any[] }>(g: G): G {
   const edges: any[] = [];
   const seen = new Set<string>();
   for (const e of g.edges) {
@@ -52,38 +55,70 @@ const BFSGraphAnimation = forwardRef<BFSHandle, BFSProps>(
   ({ start, onSummaryChange, onLog }, ref) => {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const networkRef = useRef<Network | null>(null);
+
+    // état d'animation
     const [isFinished, setIsFinished] = useState(false);
     const [playing, setPlaying] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(0);
 
+    // verrouillage de changement de sommet : on conserve un "start actif"
+    const [activeStart, setActiveStart] = useState(start);
+    const [queuedStart, setQueuedStart] = useState<string | null>(null);
+
+    // données graphe & BFS
     const G = useRef(expandUndirected(graph)).current;
     const orderRef = useRef<string[]>([]);
     const parentsRef = useRef<ParentsMap>({});
-    const intervalRef = useRef<number | null>(null);
 
-    const { data: bfsResult } = useSWR(["bfs-tree", start], () =>
-      computeBFSAsync(G as any, start)
-    );
+    // timer + token anti-zombies
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const runTokenRef = useRef(0);
 
     const clearTimer = () => {
       if (intervalRef.current) {
-        window.clearInterval(intervalRef.current);
+        clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
     };
 
-    const resetAll = () => {
+    const ensureNetwork = () => {
+      if (networkRef.current || !containerRef.current) return;
+      networkRef.current = new Network(
+        containerRef.current,
+        { nodes: [], edges: [] },
+        {
+          nodes: { shape: "dot", size: 22, borderWidth: 2 },
+          edges: { arrows: { to: false }, smooth: true },
+          physics: {
+            enabled: true,
+            solver: "forceAtlas2Based",
+            stabilization: { iterations: 200 },
+          },
+          interaction: { hover: true },
+        }
+      );
+    };
+
+    const setGraphNodesOnly = () => {
       const n: any = networkRef.current;
       if (!n) return;
-      // supprimer toutes les arêtes
+      const nodes = G.nodes.map((city: string) => ({
+        id: city,
+        label: city,
+        color: "#6366f1",
+      }));
+      n.setData({ nodes, edges: [] }); // reset data propre
+    };
+
+    const resetVisual = () => {
+      const n: any = networkRef.current;
+      if (!n) return;
+      // supprime toutes les arêtes
       const allEdges = n.body.data.edges.get().map((e: any) => e.id);
       n.body.data.edges.remove(allEdges);
-      // réinitialiser les nœuds
+      // remet la couleur des nœuds
       n.body.data.nodes.get().forEach((node: any) =>
-        n.body.data.nodes.update({
-          id: node.id,
-          color: "#6366f1",
-        })
+        n.body.data.nodes.update({ id: node.id, color: "#6366f1" })
       );
     };
 
@@ -102,68 +137,102 @@ const BFSGraphAnimation = forwardRef<BFSHandle, BFSProps>(
       }
     };
 
-    // --- Initialisation du graphe (positions physiques normales)
+    // Init/destroy du Network (une seule fois)
     useEffect(() => {
-      if (!containerRef.current || !bfsResult) return;
-
-      const nodes = G.nodes.map((city: string) => ({
-        id: city,
-        label: city,
-        color: "#6366f1",
-      }));
-
-      // On ne met AUCUNE arête au départ
-      networkRef.current = new Network(
-        containerRef.current,
-        { nodes, edges: [] },
-        {
-          nodes: { shape: "dot", size: 22, borderWidth: 2 },
-          edges: { arrows: { to: false }, smooth: true },
-          physics: {
-            enabled: true,
-            solver: "forceAtlas2Based",
-            stabilization: { iterations: 200 },
-          },
-          interaction: { hover: true },
-        }
-      );
-
-      orderRef.current = bfsResult.order || [];
-      parentsRef.current = bfsResult.parents || {};
-
-      setIsFinished(false);
-      setPlaying(false);
-      setCurrentIndex(0);
-      clearTimer();
-      resetAll();
-
-      onSummaryChange?.({ algo: "BFS (arbre libre)", order: orderRef.current, start });
-      onLog?.(`BFS initialisé depuis ${start}`);
-
-      // couleur du point de départ
-      if (orderRef.current.length > 0) {
-        const first = orderRef.current[0];
-        (networkRef.current as any).body.data.nodes.update({
-          id: first,
-          color: { background: "#a5b4fc", border: "#6366f1" },
-        });
-      }
-
-      setPlaying(true);
-
+      ensureNetwork();
       return () => {
         clearTimer();
         networkRef.current?.destroy();
         networkRef.current = null;
       };
-    }, [bfsResult, start]);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
-    // --- Étape d’animation
+    // 🔒 Verrou de changement de sommet :
+    // si le parent change `start` pendant l'animation, on le met en attente
+    useEffect(() => {
+      if (start === activeStart) return;
+      if (playing) {
+        setQueuedStart(start);
+        onLog?.(`🔒 Changement de sommet "${start}" mis en attente (animation en cours).`);
+      } else {
+        setActiveStart(start); // appliqué immédiatement si pas en lecture
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [start]);
+
+    // applique un start (actif OU en attente) → relance BFS
+    const applyStartAndRun = async (s: string) => {
+      const token = ++runTokenRef.current; // invalide les anciennes runs
+      clearTimer();
+      setPlaying(false);
+      setIsFinished(false);
+      setCurrentIndex(0);
+
+      ensureNetwork();
+      setGraphNodesOnly();
+      resetVisual();
+
+      try {
+        const bfs = await computeBFSAsync(G as any, s);
+        if (token !== runTokenRef.current) return; // annulé
+
+        orderRef.current = bfs.order || [];
+        parentsRef.current = bfs.parents || {};
+
+        onSummaryChange?.({
+          algo: "BFS (arbre libre)",
+          order: orderRef.current,
+          start: s,
+        });
+        onLog?.(`BFS initialisé depuis ${s}`);
+
+        // colorier le premier
+        const n: any = networkRef.current;
+        if (orderRef.current.length > 0) {
+          n?.body.data.nodes.update({
+            id: orderRef.current[0],
+            color: { background: "#a5b4fc", border: "#6366f1" },
+          });
+        }
+
+        // lancer l’anim uniquement si on a au moins 2 nœuds
+        if (orderRef.current.length > 1) {
+          setPlaying(true);
+        } else {
+          setIsFinished(true);
+          setPlaying(false);
+        }
+      } catch (e) {
+        onLog?.(`❌ Erreur BFS: ${(e as Error).message}`);
+        setIsFinished(true);
+      }
+    };
+
+    // (Re)lancer BFS quand activeStart change réellement
+    useEffect(() => {
+      applyStartAndRun(activeStart);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeStart]);
+
+    // Quand l'animation s'arrête (pause ou fin), si un start est en attente, on l'applique
+    useEffect(() => {
+      if (!playing && queuedStart && queuedStart !== activeStart) {
+        onLog?.(`✅ Application du sommet en attente "${queuedStart}".`);
+        setActiveStart(queuedStart);
+        setQueuedStart(null);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [playing]);
+
     const runStep = (i: number) => {
+      const activeToken = runTokenRef.current;
       const n: any = networkRef.current;
       const order = orderRef.current;
       const parents = parentsRef.current;
+
       if (!n || i <= 0 || i >= order.length) return;
+      if (activeToken !== runTokenRef.current) return; // annulé
 
       const prev = order[i - 1];
       const current = order[i];
@@ -175,12 +244,12 @@ const BFSGraphAnimation = forwardRef<BFSHandle, BFSProps>(
         color: { background: "#6366f1", border: "#4f46e5" },
       });
 
-      // on crée l’arête (parent, current)
       if (parent) {
         addEdge(parent, current);
         onLog?.(`Nouvelle connexion : ${parent} → ${current}`);
       }
 
+      // current en surbrillance
       n.body.data.nodes.update({
         id: current,
         color: { background: "#a5b4fc", border: "#6366f1" },
@@ -194,12 +263,16 @@ const BFSGraphAnimation = forwardRef<BFSHandle, BFSProps>(
       }
     };
 
-    // --- Animation automatique
+    // Boucle d’animation
     useEffect(() => {
       clearTimer();
       if (!playing) return;
+
+      const token = ++runTokenRef.current; // nouveau cycle
       let idx = currentIndex;
-      intervalRef.current = window.setInterval(() => {
+
+      intervalRef.current = setInterval(() => {
+        if (token !== runTokenRef.current) return; // zombie
         const order = orderRef.current;
         if (idx + 1 < order.length) {
           runStep(idx + 1);
@@ -210,11 +283,12 @@ const BFSGraphAnimation = forwardRef<BFSHandle, BFSProps>(
           setPlaying(false);
         }
       }, STEP_MS);
+
       return clearTimer;
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [playing]);
 
-    // --- Contrôles
+    // API exposée au parent
     useImperativeHandle(ref, () => ({
       play: () => {
         if (!isFinished && !playing) {
@@ -228,18 +302,20 @@ const BFSGraphAnimation = forwardRef<BFSHandle, BFSProps>(
         onLog?.("⏸️ Pause BFS");
       },
       reset: () => {
+        runTokenRef.current++; // invalide
         clearTimer();
         setPlaying(false);
         setCurrentIndex(0);
-        resetAll();
-        if (orderRef.current.length > 0) {
-          const first = orderRef.current[0];
-          (networkRef.current as any).body.data.nodes.update({
-            id: first,
+        resetVisual();
+
+        const order = orderRef.current;
+        if (order.length > 0) {
+          (networkRef.current as any)?.body.data.nodes.update({
+            id: order[0],
             color: { background: "#a5b4fc", border: "#6366f1" },
           });
         }
-        setIsFinished(false);
+        setIsFinished(order.length <= 1);
         onLog?.("↺ Réinitialisation BFS");
       },
       step: () => {
@@ -254,9 +330,15 @@ const BFSGraphAnimation = forwardRef<BFSHandle, BFSProps>(
 
     return (
       <Box display="flex" flexDirection="column" alignItems="center" sx={{ p: { xs: 3, md: 5 } }}>
-        <Typography variant="body1" sx={{ color: "#64748b", fontSize: 16, mb: 2 }}>
-          BFS — Construction de l’arbre dans l’espace
-        </Typography>
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+          <Typography variant="body1" sx={{ color: "#64748b", fontSize: 16 }}>
+            BFS — Construction de l’arbre dans l’espace
+          </Typography>
+          {playing && <Chip label="Animation en cours (verrouillée)" size="small" />}
+          {!playing && queuedStart && (
+            <Chip label={`En attente: ${queuedStart}`} size="small" variant="outlined" />
+          )}
+        </Stack>
 
         <Paper
           ref={containerRef}
@@ -271,15 +353,76 @@ const BFSGraphAnimation = forwardRef<BFSHandle, BFSProps>(
           }}
         />
 
+        <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
+          <Button
+            startIcon={<PlayArrowIcon />}
+            onClick={() => {
+              if (!isFinished && !playing) setPlaying(true);
+            }}
+            disabled={playing || isFinished}
+            sx={{ textTransform: "none", color: "black" }}
+          >
+            Lire
+          </Button>
+          <Button
+            startIcon={<PauseIcon />}
+            onClick={() => setPlaying(false)}
+            disabled={!playing}
+            sx={{ textTransform: "none", color: "black" }}
+          >
+            Pause
+          </Button>
+          <Button
+            startIcon={<ReplayIcon />}
+            onClick={() => {
+              runTokenRef.current++;
+              clearTimer();
+              setPlaying(false);
+              setIsFinished(false);
+              setCurrentIndex(0);
+              resetVisual();
+
+              const order = orderRef.current;
+              if (order.length > 0) {
+                (networkRef.current as any)?.body.data.nodes.update({
+                  id: order[0],
+                  color: { background: "#a5b4fc", border: "#6366f1" },
+                });
+              }
+              if (order.length > 1) setPlaying(true);
+              onLog?.("🔁 Rejouer BFS");
+            }}
+            sx={{ textTransform: "none", color: "black" }}
+          >
+            Rejouer
+          </Button>
+        </Stack>
+
+        <Typography variant="caption" sx={{ mt: 1, color: "#64748b" }}>
+          Sommet actif : <b>{activeStart}</b>
+          {queuedStart && playing && <> — (nouveau sommet <b>{queuedStart}</b> en attente)</>}
+        </Typography>
+
         {isFinished && (
           <Button
             startIcon={<ReplayIcon />}
             sx={{ mt: 2, textTransform: "none", color: "black" }}
             onClick={() => {
-              resetAll();
-              setPlaying(true);
+              runTokenRef.current++;
+              clearTimer();
+              setPlaying(false);
               setIsFinished(false);
               setCurrentIndex(0);
+              resetVisual();
+
+              const order = orderRef.current;
+              if (order.length > 0) {
+                (networkRef.current as any)?.body.data.nodes.update({
+                  id: order[0],
+                  color: { background: "#a5b4fc", border: "#6366f1" },
+                });
+              }
+              if (order.length > 1) setPlaying(true);
               onLog?.("🔁 Rejouer BFS");
             }}
           >
