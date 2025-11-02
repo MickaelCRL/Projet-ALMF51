@@ -21,60 +21,32 @@ namespace Projet_ALMF51.Application.BellmanFord
             }
             dist[start] = 0;
 
-            // Adjacence (tient compte du sens du graphe)
-            var adj = new Dictionary<string, List<(string to, int w)>>();
-            foreach (var node in graph.Nodes)
-                adj[node] = new List<(string to, int w)>();
+            distances[start] = 0;
 
-            foreach (var e in graph.Edges)
+            int verticesCount = graph.Nodes.Count;
+
+            for (int i = 0; i < verticesCount - 1; i++)
             {
-                adj[e.From].Add((e.To, e.Weight));
-                if (!graph.IsOriented)
-                    adj[e.To].Add((e.From, e.Weight));
+                foreach (var edge in graph.Edges)
+                {
+                    RelaxEdge(edge.From, edge.To, edge.Weight);
+
+                    if (!graph.IsOriented)
+                    {
+                        RelaxEdge(edge.To, edge.From, edge.Weight);
+                    }
+                }
             }
 
-            // SPFA + détection de cycle négatif (compte des relaxations)
-            var q = new Queue<string>();
-            var inQueue = new HashSet<string>();
-            var relaxCount = new Dictionary<string, int>();
-
-            q.Enqueue(start);
-            inQueue.Add(start);
-            relaxCount[start] = 0;
-
-            while (q.Count > 0)
+            void RelaxEdge(string from, string to, int weight)
             {
-                var u = q.Dequeue();
-                inQueue.Remove(u);
-
-                foreach (var (v, w) in adj[u])
+                if (distances[from] != int.MaxValue)
                 {
-                    if (dist[u] == INF) continue;          // évite addition INF + w
-                    var cand = dist[u] + w;
-                    if (cand < dist[v])
+                    int newDistance = distances[from] + weight;
+                    if (newDistance < distances[to])
                     {
-                        dist[v] = cand;
-                        parent[v] = u;
-
-                        // détection de cycle négatif via nombre de relaxations
-                        if (!relaxCount.ContainsKey(v)) relaxCount[v] = 0;
-                        relaxCount[v]++;
-                        if (relaxCount[v] >= graph.Nodes.Count)
-                        {
-                            // Cycle négatif détecté
-                            return new OptimalPathResult
-                            {
-                                Path = new List<string>(),
-                                TotalCost = int.MaxValue,   // ou null si tu préfères
-                                // HasNegativeCycle = true   // <-- ajoute ce champ si possible
-                            };
-                        }
-
-                        if (!inQueue.Contains(v))
-                        {
-                            q.Enqueue(v);
-                            inQueue.Add(v);
-                        }
+                        distances[to] = newDistance;
+                        parents[to] = from;
                     }
                 }
             }
@@ -99,6 +71,7 @@ namespace Projet_ALMF51.Application.BellmanFord
                 path.Add(cur);
                 cur = parent[cur];
             }
+
             path.Reverse();
 
             return new OptimalPathResult

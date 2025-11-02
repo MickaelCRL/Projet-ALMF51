@@ -32,11 +32,23 @@ namespace Projet_ALMF51.Application.Dijkstra
                     break;
 
                 var neighbors = graph.Edges
-                    .Where(e => e.From == current || e.To == current);
+                    .Where(e =>
+                        graph.IsOriented ? e.From == current : (e.From == current || e.To == current)
+                    );
 
                 foreach (var edge in neighbors)
                 {
-                    var neighbor = edge.From == current ? edge.To : edge.From;
+                    string neighbor;
+
+                    if (graph.IsOriented)
+                    {
+                        neighbor = edge.To;
+                    }
+                    else
+                    {
+                        neighbor = edge.From == current ? edge.To : edge.From;
+                    }
+
                     if (visited.Contains(neighbor))
                         continue;
 

@@ -7,7 +7,6 @@ namespace Projet_ALMF51.Application.Kruskal
     {
         public MSTResult Compute(Graph graph)
         {
-
             var result = new MSTResult
             {
                 Edges = new List<Edge>(),
@@ -41,5 +40,4 @@ namespace Projet_ALMF51.Application.Kruskal
             return result;
         }
     }
-
 }
