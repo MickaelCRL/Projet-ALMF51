@@ -6,16 +6,16 @@ namespace Projet_ALMF51.Application.BellmanFord
 {
     public class BellmanFordService : IBellmanFordService
     {
+        const int INFINITY = int.MaxValue;
         public BellmanFordResult Compute(Graph graph, string start)
-
         {
-            var distances = new Dictionary<string, double>();
-            var parents = new Dictionary<string, string?>();
+            var distances = new Dictionary<string, int>();
+            var parents = new Dictionary<string, string>();
             var L = new HashSet<string>();
 
             foreach (var node in graph.Nodes)
             {
-                distances[node] = double.PositiveInfinity;
+                distances[node] = INFINITY;
                 parents[node] = null;
             }
             distances[start] = 0;
@@ -32,7 +32,7 @@ namespace Projet_ALMF51.Application.BellmanFord
                 foreach (var edge in graph.GetOutgoingEdges(t))
                 {
                     string k = edge.To;
-                    double w = edge.Weight;
+                    int w = edge.Weight;
 
                     if (distances[k] > distances[t] + w)
                     {

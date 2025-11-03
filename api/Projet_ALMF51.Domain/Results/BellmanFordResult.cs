@@ -2,10 +2,10 @@
 {
     public class BellmanFordResult
     {
-        public Dictionary<string, double> Distances { get; }
-        public Dictionary<string, string?> Parents { get; }
+        public Dictionary<string, int> Distances { get; }
+        public Dictionary<string, string> Parents { get; }
 
-        public BellmanFordResult(Dictionary<string, double> distances, Dictionary<string, string?> parents)
+        public BellmanFordResult(Dictionary<string, int> distances, Dictionary<string, string> parents)
         {
             Distances = distances;
             Parents = parents;
