@@ -18,7 +18,7 @@ import {
   Alert,
 } from "@mui/material";
 import ReplayIcon from "@mui/icons-material/Replay";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import RouteIcon from "@mui/icons-material/Route";
 import { graph } from "../../data/graph";
 import { computePrimAsync } from "../../services/primService";
 
@@ -84,7 +84,6 @@ const PrimGraphAnimation = forwardRef<PrimHandle, PrimProps>(
     const [total, setTotal] = useState<number | null>(null);
     const [currentStep, setCurrentStep] = useState(0);
 
-    // ✅ pairsRef = source de vérité immédiate (évite le délai de setState)
     const pairsRef = useRef<Array<[string, string]>>([]);
 
     useEffect(() => {
@@ -93,7 +92,7 @@ const PrimGraphAnimation = forwardRef<PrimHandle, PrimProps>(
       const nodes = graph.nodes.map((city) => ({
         id: city,
         label: city,
-        color: "#6366f1",
+        color: "#6366f1", // nœuds défaut
       }));
       const edges: Edge[] = graph.edges.map((e: any) => ({
         id: `${e.from}->${e.to}`,
@@ -101,7 +100,7 @@ const PrimGraphAnimation = forwardRef<PrimHandle, PrimProps>(
         to: e.to,
         label: String(e.weight),
         font: { align: "top" },
-        color: "#64748b",
+        color: "#64748b", // arêtes défaut
         width: 2.5,
       }));
 
@@ -149,6 +148,7 @@ const PrimGraphAnimation = forwardRef<PrimHandle, PrimProps>(
       );
     };
 
+    // mêmes couleurs que Dijkstra/BF : arête active + nœuds visités
     const colorEdgeAndNodes = (u: string, v: string) => {
       const n: any = networkRef.current;
       if (!n) return;
@@ -156,22 +156,26 @@ const PrimGraphAnimation = forwardRef<PrimHandle, PrimProps>(
       if (e) {
         n.body.data.edges.update({
           id: e.id,
-          color: "#22c55e",
+          color: "#FFB300",
           width: 4,
         });
       }
-      n.body.data.nodes.update({
-        id: u,
-        color: { background: "#bbf7d0", border: "#22c55e" },
-      });
-      n.body.data.nodes.update({
-        id: v,
-        color: { background: "#bbf7d0", border: "#22c55e" },
-      });
+      // ne pas recolorer le start
+      if (u !== start1) {
+        n.body.data.nodes.update({
+          id: u,
+          color: { background: "#2F4F4F", border: "#2F4F4F" },
+        });
+      }
+      if (v !== start1) {
+        n.body.data.nodes.update({
+          id: v,
+          color: { background: "#2F4F4F", border: "#2F4F4F" },
+        });
+      }
       onLog?.(`Ajout de l’arête (${u}–${v})`);
     };
 
-    // ✅ lit depuis pairsRef (synchrone)
     const runStep = (i: number) => {
       const pairs = pairsRef.current;
       if (i >= pairs.length) return;
@@ -199,10 +203,10 @@ const PrimGraphAnimation = forwardRef<PrimHandle, PrimProps>(
       clearTimer();
       onLog?.(`Lancement de Prim depuis ${start1}`);
 
-      // met en avant le départ
+      // Start en vert (et on ne le touchera plus)
       (networkRef.current as any).body.data.nodes.update({
         id: start1,
-        color: { background: "#fde68a", border: "#f59e0b" },
+        color: { background: "#00FA9A", border: "#00FA9A" },
       });
 
       try {
@@ -218,7 +222,6 @@ const PrimGraphAnimation = forwardRef<PrimHandle, PrimProps>(
         const pRaw = edges.map((e: any) => [e.from, e.to]) as Array<[string, string]>;
         const p = orderTreeEdgesFromStart(pRaw, start1);
 
-        // ✅ stocke immédiatement dans la ref AVANT de démarrer l’interval
         pairsRef.current = p;
 
         setTotal(totalCost);
@@ -230,7 +233,6 @@ const PrimGraphAnimation = forwardRef<PrimHandle, PrimProps>(
         });
         onLog?.(`Prim sélectionne ${edges.length} arêtes (coût total = ${totalCost})`);
 
-        // ✅ animation avec index local et lecture dans pairsRef
         let idx = 0;
         intervalRef.current = window.setInterval(() => {
           runStep(idx);
@@ -323,7 +325,7 @@ const PrimGraphAnimation = forwardRef<PrimHandle, PrimProps>(
 
           <Button
             variant="contained"
-            startIcon={<PlayArrowIcon />}
+            startIcon={<RouteIcon />}
             disabled={running}
             onClick={handleRun}
           >

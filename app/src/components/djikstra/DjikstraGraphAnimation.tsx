@@ -29,7 +29,6 @@ type PathResult = {
   totalCost?: number;
 };
 
-// 🔹 Props étendues (callbacks)
 type DijkstraProps = {
   start: string;
   target: string;
@@ -37,7 +36,6 @@ type DijkstraProps = {
   onLog?: (msg: string) => void;
 };
 
-// 🔹 Ref exposée
 export type DijkstraHandle = {
   play: () => void;
   pause: () => void;
@@ -135,31 +133,36 @@ const DijkstraGraphAnimation = forwardRef<DijkstraHandle, DijkstraProps>(
     const paintEndpoints = (s: string, t: string) => {
       if (!networkRef.current) return;
       const n: any = networkRef.current;
+      // départ : vert
       n.body.data.nodes.update({
         id: s,
-        color: { background: "#fde68a", border: "#f59e0b" },
+        color: { background: "#00FA9A", border: "#00FA9A" },
       });
+      // arrivée : rouge
       n.body.data.nodes.update({
         id: t,
-        color: { background: "#fecaca", border: "#ef4444" },
+        color: { background: "#E63946", border: "#E63946" },
       });
     };
 
     // --- Coloration d'une arête ---
     const colorEdgeAndNode = (u: string, v: string) => {
       if (!networkRef.current) return;
-      const e = findEdgeBetween(u, v);
-      if (e) {
+      const edge = findEdgeBetween(u, v);
+      if (edge) {
         (networkRef.current as any).body.data.edges.update({
-          id: e.id,
-          color: "#22c55e",
+          id: edge.id,
+          color: "#FFB300",
           width: 4,
         });
       }
-      (networkRef.current as any).body.data.nodes.update({
-        id: v,
-        color: { background: "#bbf7d0", border: "#22c55e" },
-      });
+      // ⚠️ Ne recolore JAMAIS start ou target
+      if (v !== start1 && v !== target1) {
+        (networkRef.current as any).body.data.nodes.update({
+          id: v,
+          color: { background: "#2F4F4F", border: "#2F4F4F" },
+        });
+      }
       onLog?.(`Relaxation (${u} → ${v})`);
     };
 
@@ -200,6 +203,8 @@ const DijkstraGraphAnimation = forwardRef<DijkstraHandle, DijkstraProps>(
         }
 
         setCost(totalCost);
+
+        // Peindre départ/arrivée UNE FOIS, puis on les laisse tels quels
         paintEndpoints(start1, target1);
 
         const localPairs: Array<[string, string]> = [];
@@ -222,7 +227,6 @@ const DijkstraGraphAnimation = forwardRef<DijkstraHandle, DijkstraProps>(
           animation: { duration: 800, easingFunction: "easeInOutQuad" },
         });
 
-        // ✅ Animation robuste : index local
         let idx = 0;
         timerRef.current = window.setInterval(() => {
           if (idx < localPairs.length) {
@@ -301,17 +305,12 @@ const DijkstraGraphAnimation = forwardRef<DijkstraHandle, DijkstraProps>(
         alignItems="center"
         sx={{ p: { xs: 3, md: 5 } }}
       >
-        <Typography
-          variant="body1" sx={{ color: "#64748b", fontSize: 16 }}
-        >
+        <Typography variant="body1" sx={{ color: "#64748b", fontSize: 16 }}>
           Dijkstra — Chemin le plus court entre deux villes
         </Typography>
 
         {error && (
-          <Alert
-            severity="warning"
-            sx={{ mb: 2, width: "100%", maxWidth: 720 }}
-          >
+          <Alert severity="warning" sx={{ mb: 2, width: "100%", maxWidth: 720 }}>
             {error}
           </Alert>
         )}
@@ -387,10 +386,7 @@ const DijkstraGraphAnimation = forwardRef<DijkstraHandle, DijkstraProps>(
           </Stack>
 
           {cost !== null && !running && (
-            <Typography
-              variant="body2"
-              sx={{ ml: { xs: 0, sm: "auto" } }}
-            >
+            <Typography variant="body2" sx={{ ml: { xs: 0, sm: "auto" } }}>
               Coût total : <b>{cost}</b>
             </Typography>
           )}

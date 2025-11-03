@@ -101,13 +101,13 @@ export default function Lab() {
             onChange={(e) => setAlgo(e.target.value as AlgoKey)}
             size="small"
           >
-            <MenuItem value="BFS">BFS (parcours largeur)</MenuItem>
-            <MenuItem value="DFS">DFS (parcours profondeur)</MenuItem>
-            <MenuItem value="Dijkstra">Dijkstra (poids ≥ 0)</MenuItem>
-            <MenuItem value="Bellman-Ford">Bellman-Ford (poids ±)</MenuItem>
-            <MenuItem value="Floyd-Warshall">Floyd–Warshall (all-to-all)</MenuItem>
-            <MenuItem value="Kruskal">Kruskal (ACM)</MenuItem>
-            <MenuItem value="Prim">Prim (ACM)</MenuItem>
+            <MenuItem value="BFS">BFS</MenuItem>
+            <MenuItem value="DFS">DFS</MenuItem>
+            <MenuItem value="Dijkstra">Dijkstra</MenuItem>
+            <MenuItem value="Bellman-Ford">Bellman-Ford</MenuItem>
+            <MenuItem value="Floyd-Warshall">Floyd–Warshall</MenuItem>
+            <MenuItem value="Kruskal">Kruskal</MenuItem>
+            <MenuItem value="Prim">Prim</MenuItem>
           </TextField>
 
           {needsStart && (

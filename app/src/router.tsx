@@ -1,10 +1,8 @@
 import { createBrowserRouter } from "react-router-dom";
 import App from "./App";
-import Traversal from "./pages/Traversal";
 import NotFoundPage from "./pages/NotFoundPage";
 import Layout from "./components/Layout";
-import CoveringTree from "./pages/CoveringTree";
-import ShortestPath from "./pages/ShortestPath";
+import APropos from "./pages/APropos";
 
 const router = createBrowserRouter([
   {
@@ -17,16 +15,8 @@ const router = createBrowserRouter([
         element: <App />,
       },
       {
-        path: "/parcours",
-        element: <Traversal />,
-      },
-      {
-        path: "/arbre-couvrant",
-        element: <CoveringTree />,
-      },
-      {
-        path: "/chemin-optimal",
-        element : <ShortestPath />
+        path: "/a-propos",
+        element : <APropos/>
       }
     ],
   },

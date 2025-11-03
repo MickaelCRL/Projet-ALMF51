@@ -8,7 +8,7 @@ import React, {
 import { Network, type Edge } from "vis-network/standalone";
 import { Box, Paper, Typography, Button, Stack, Alert } from "@mui/material";
 import ReplayIcon from "@mui/icons-material/Replay";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import RouteIcon from "@mui/icons-material/Route";
 import { graph } from "../../data/graph";
 import { computeKruskalAsync } from "../../services/kruskalService";
 
@@ -38,7 +38,6 @@ const KruskalGraphAnimation = forwardRef<KruskalHandle, KruskalProps>(
     const [error, setError] = useState<string | null>(null);
     const [total, setTotal] = useState<number | null>(null);
 
-    // ⚠️ steps en state pour rerender (optionnel), mais REF pour l’animation immédiate
     const [steps, setSteps] = useState<Step[]>([]);
     const stepsRef = useRef<Step[]>([]);
     const currentStepRef = useRef(0);
@@ -50,7 +49,7 @@ const KruskalGraphAnimation = forwardRef<KruskalHandle, KruskalProps>(
       const nodes = graph.nodes.map((city) => ({
         id: city,
         label: city,
-        color: "#3b82f6",
+        color: "#6366f1", // <- mêmes couleurs par défaut (nœuds)
       }));
 
       const edges: Edge[] = graph.edges.map((e: any) => ({
@@ -59,7 +58,7 @@ const KruskalGraphAnimation = forwardRef<KruskalHandle, KruskalProps>(
         to: e.to,
         label: String(e.weight),
         font: { align: "top" },
-        color: "#94a3b8",
+        color: "#64748b", // <- mêmes couleurs par défaut (arêtes)
         width: 2.5,
       }));
 
@@ -92,10 +91,10 @@ const KruskalGraphAnimation = forwardRef<KruskalHandle, KruskalProps>(
       const n: any = networkRef.current;
       if (!n) return;
       n.body.data.nodes.get().forEach((node: any) =>
-        n.body.data.nodes.update({ id: node.id, color: "#3b82f6" })
+        n.body.data.nodes.update({ id: node.id, color: "#6366f1" }) // reset nœuds
       );
       n.body.data.edges.get().forEach((edge: any) =>
-        n.body.data.edges.update({ id: edge.id, color: "#94a3b8", width: 2.5 })
+        n.body.data.edges.update({ id: edge.id, color: "#64748b", width: 2.5 }) // reset arêtes
       );
     };
 
@@ -108,7 +107,7 @@ const KruskalGraphAnimation = forwardRef<KruskalHandle, KruskalProps>(
       );
     };
 
-    // --- Une étape : colorier exactement UNE arête et ses nœuds ---
+    // --- Une étape : colorier exactement UNE arête et (optionnel) ses nœuds ---
     const runStepOnce = (i: number, list: Step[] = stepsRef.current) => {
       if (!networkRef.current || i >= list.length) return;
       const { from, to, inMST } = list[i];
@@ -116,13 +115,16 @@ const KruskalGraphAnimation = forwardRef<KruskalHandle, KruskalProps>(
 
       const edge = findEdge(from, to);
       if (inMST) {
-        if (edge) n.body.data.edges.update({ id: edge.id, color: "#22c55e", width: 4 });
+        // arête dans l’ACM : même style que les « edges actives » ailleurs
+        if (edge) n.body.data.edges.update({ id: edge.id, color: "#FFB300", width: 4 });
+        // nœuds touchés : même style de visite
         n.body.data.nodes.update([
-          { id: from, color: { background: "#bbf7d0", border: "#22c55e" } },
-          { id: to,   color: { background: "#bbf7d0", border: "#22c55e" } },
+          { id: from, color: { background: "#2F4F4F", border: "#2F4F4F" } },
+          { id: to,   color: { background: "#2F4F4F", border: "#2F4F4F" } },
         ]);
         onLog?.(`✅ (${from}–${to}) ajoutée à l’ACM`);
       } else {
+        // arête rejetée (cycle) : grisée
         if (edge) n.body.data.edges.update({ id: edge.id, color: "#cbd5e1", width: 2 });
         onLog?.(`❌ (${from}–${to}) rejetée (cycle)`);
       }
@@ -157,9 +159,8 @@ const KruskalGraphAnimation = forwardRef<KruskalHandle, KruskalProps>(
         evaluated?.map((e: any) => ({ from: e.from, to: e.to, inMST: !!e.inMST })) ??
         edges.map((e: any) => ({ from: e.from, to: e.to, inMST: true }));
 
-      // ⚠️ MAJ ref AVANT de lancer l’animation
       stepsRef.current = list;
-      setSteps(list); // pour l’UI (optionnel)
+      setSteps(list);
 
       onSummaryChange?.({
         algo: "Kruskal",
@@ -173,10 +174,10 @@ const KruskalGraphAnimation = forwardRef<KruskalHandle, KruskalProps>(
           : `💡 Prêt à animer : ${list.length} étapes`
       );
 
-      return list; // on renvoie la liste immédiate
+      return list;
     };
 
-    // --- Lancer (bouton) : calcule et enchaîne les étapes ---
+    // --- Lancer (bouton) ---
     const handleRun = async () => {
       if (!networkRef.current) return;
       try {
@@ -184,10 +185,8 @@ const KruskalGraphAnimation = forwardRef<KruskalHandle, KruskalProps>(
         if (!list.length) return;
         setRunning(true);
 
-        // ✅ colorier IMMEDIATEMENT la première étape
         runStepOnce(0, list);
 
-        // puis poursuivre à partir de 1
         let idx = 1;
         clearTimer();
         intervalRef.current = window.setInterval(() => {
@@ -210,17 +209,14 @@ const KruskalGraphAnimation = forwardRef<KruskalHandle, KruskalProps>(
       play: async () => {
         if (running) return;
 
-        // Si aucune étape prête, on prépare puis on anime
         if (stepsRef.current.length === 0) {
           try {
             const list = await prepareSteps();
             if (!list.length) return;
             setRunning(true);
 
-            // ✅ colorier tout de suite l’étape 0
             runStepOnce(0, list);
 
-            // puis interval
             let idx = 1;
             clearTimer();
             intervalRef.current = window.setInterval(() => {
@@ -239,12 +235,10 @@ const KruskalGraphAnimation = forwardRef<KruskalHandle, KruskalProps>(
           }
         }
 
-        // Sinon on reprend depuis currentStepRef
         setRunning(true);
         let idx = currentStepRef.current;
         clearTimer();
 
-        // ✅ si on repart de 0, on colore immédiatement la première
         if (idx === 0) {
           runStepOnce(0);
           idx = 1;
@@ -310,7 +304,10 @@ const KruskalGraphAnimation = forwardRef<KruskalHandle, KruskalProps>(
         />
 
         <Stack direction="row" spacing={2}>
-          <Button variant="contained" startIcon={<PlayArrowIcon />} disabled={running} onClick={handleRun}>
+          <Button variant="contained"
+              startIcon={<RouteIcon />}
+              disabled={running}
+              onClick={handleRun}>
             Lancer Kruskal
           </Button>
           <Button

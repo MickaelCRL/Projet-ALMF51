@@ -182,25 +182,29 @@ const BellmanFordGraphAnimation = forwardRef<BFHandle, BFProps>(
       if (!n) return;
       n.body.data.nodes.update({
         id: s,
-        color: { background: "#fde68a", border: "#f59e0b" },
+        color: { background: "#00FA9A", border: "#00FA9A" },
       });
       n.body.data.nodes.update({
         id: t,
-        color: { background: "#fecaca", border: "#ef4444" },
+        color: { background: "#E63946", border: "#E63946" },
       });
     };
 
+    // ⚠️ Modifié pour NE PAS recolorier start/target
     const colorEdgeAndNode = (u: string, v: string) => {
       const n: any = networkRef.current;
       if (!n) return;
       const e = findEdgeBetween(u, v);
       if (e) {
-        n.body.data.edges.update({ id: e.id, color: "#22c55e", width: 4 });
+        n.body.data.edges.update({ id: e.id, color: "#FFB300", width: 4 });
       }
-      n.body.data.nodes.update({
-        id: v,
-        color: { background: "#bbf7d0", border: "#22c55e" },
-      });
+      // ⛔ ne pas toucher aux couleurs de départ/arrivée
+      if (v !== start1 && v !== target1) {
+        n.body.data.nodes.update({
+          id: v,
+          color: { background: "#2F4F4F", border: "#2F4F4F" },
+        });
+      }
     };
 
     const updateDistanceTooltips = (dist: DistMap) => {
@@ -244,6 +248,7 @@ const BellmanFordGraphAnimation = forwardRef<BFHandle, BFProps>(
       resetColors();
       currentStepRef.current = 0;
 
+      // peint UNE FOIS, puis on n'y touche plus
       highlightEndpoints(start1, target1);
 
       try {
@@ -393,7 +398,7 @@ const BellmanFordGraphAnimation = forwardRef<BFHandle, BFProps>(
 
           <Stack direction="row" spacing={1}>
             <Button variant="contained" startIcon={<RouteIcon />} disabled={running} onClick={handleRun}>
-              {running ? "Animation..." : "Lancer Bellman-Ford"}
+              {running ? "Animation..." : " Lancer"}
             </Button>
             <Button
               variant="outlined"
