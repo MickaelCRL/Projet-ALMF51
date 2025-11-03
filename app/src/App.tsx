@@ -11,8 +11,18 @@ import {
 import useSWR from "swr";
 import { graph } from "./data/graph";
 import { computeFloydWarshallAsync } from "./services/floydWarshall";
+import { graphNegative } from "./data/graphNegative";
+import { computeBellmanFordAsync } from "./services/bellmanFordService";
 
 function App() {
+  const start = "s1";
+  const { data: bellmanford } = useSWR(
+    ["bellmanford", graphNegative, start],
+    () => computeBellmanFordAsync(graphNegative, start)
+  );
+
+  console.log("bellmanford", bellmanford);
+
   const { data: floydwarshall } = useSWR(["floydwarshall", graph], () =>
     computeFloydWarshallAsync(graph)
   );

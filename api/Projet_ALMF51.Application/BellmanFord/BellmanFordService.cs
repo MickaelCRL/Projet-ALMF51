@@ -5,72 +5,43 @@ namespace Projet_ALMF51.Application.BellmanFord
 {
     public class BellmanFordService : IBellmanFordService
     {
-        public OptimalPathResult Compute(Graph graph, string start, string target)
+        public BellmanFordResult Compute(Graph graph, string start)
         {
-            var distances = new Dictionary<string, int>();
-            var parents = new Dictionary<string, string>();
+            var distances = new Dictionary<string, double>();
+            var parents = new Dictionary<string, string?>();
+            var L = new HashSet<string>();
 
             foreach (var node in graph.Nodes)
             {
-                distances[node] = int.MaxValue;
+                distances[node] = double.PositiveInfinity;
                 parents[node] = null;
             }
 
             distances[start] = 0;
+            parents[start] = null;
+            L.Add(start);
 
-            int verticesCount = graph.Nodes.Count;
-
-            for (int i = 0; i < verticesCount - 1; i++)
+            while (L.Count > 0)
             {
-                foreach (var edge in graph.Edges)
-                {
-                    RelaxEdge(edge.From, edge.To, edge.Weight);
+                string t = L.First();
+                L.Remove(t);
 
-                    if (!graph.IsOriented)
+                foreach (var edge in graph.GetOutgoingEdges(t))
+                {
+                    string k = edge.To;
+                    double w = edge.Weight;
+
+                    if (distances[k] > distances[t] + w)
                     {
-                        RelaxEdge(edge.To, edge.From, edge.Weight);
+                        distances[k] = distances[t] + w;
+                        parents[k] = t;
+                        L.Add(k);
                     }
                 }
             }
 
-            void RelaxEdge(string from, string to, int weight)
-            {
-                if (distances[from] != int.MaxValue)
-                {
-                    int newDistance = distances[from] + weight;
-                    if (newDistance < distances[to])
-                    {
-                        distances[to] = newDistance;
-                        parents[to] = from;
-                    }
-                }
-            }
-
-            var path = new List<string>();
-            var current = target;
-
-            if (distances[target] == int.MaxValue)
-            {
-                return new OptimalPathResult
-                {
-                    Path = new List<string>(),
-                    TotalCost = int.MaxValue
-                };
-            }
-
-            while (current != null)
-            {
-                path.Add(current);
-                current = parents[current];
-            }
-
-            path.Reverse();
-
-            return new OptimalPathResult
-            {
-                Path = path,
-                TotalCost = distances[target]
-            };
+            return new BellmanFordResult(distances, parents);
         }
     }
 }
+

@@ -12,7 +12,7 @@ namespace Projet_ALMF51.Presentation.BellmanFord
         {
             app.MapPost(BellmanFordRoute, (OptimalPathRequest request, IBellmanFordService bellmanFord) =>
             {
-                var result = bellmanFord.Compute(request.Graph, request.Start, request.Target);
+                var result = bellmanFord.Compute(request.Graph, request.Start);
                 return Results.Ok(result);
             });
 

@@ -13,7 +13,7 @@ namespace Projet_ALMF51.Application.FloydWarshall
             const long INF = long.MaxValue / 4;
 
             var dist = new long[n, n];
-            var next = new string?[n, n];
+            var next = new string[n, n];
 
             for (int i = 0; i < n; i++)
             {
