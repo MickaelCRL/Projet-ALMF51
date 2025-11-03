@@ -16,9 +16,9 @@ namespace Projet_ALMF51.Application.BellmanFord
             foreach (var node in graph.Nodes)
             {
                 distances[node] = double.PositiveInfinity;
-                parent[node] = null;
+                parents[node] = null;
             }
-            dist[start] = 0;
+            distances[start] = 0;
 
             distances[start] = 0;
             parents[start] = null;
@@ -44,12 +44,7 @@ namespace Projet_ALMF51.Application.BellmanFord
             }
 
             return new BellmanFordResult(distances, parents);
-            var path = new List<string>();
-            string? cur = target;
-            var guard = new HashSet<string>();
-            while (cur != null && !guard.Contains(cur))
-                cur = parent[cur];
-                // HasNegativeCycle = false
+          
         }
     }
 }

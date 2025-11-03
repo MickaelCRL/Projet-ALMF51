@@ -8,7 +8,7 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
-import Lab from "./pages/Lab"
+import Lab from "./pages/Lab";
 import useSWR from "swr";
 import { graph } from "./data/graph";
 import { computeFloydWarshallAsync } from "./services/floydWarshallService";
@@ -24,6 +24,7 @@ function App() {
 
   console.log("bellmanford", bellmanford);
 
+  const { data: floydwarshall } = useSWR(["floydwarshall", graph], () =>
     computeFloydWarshallAsync(graph)
   );
 
@@ -63,11 +64,11 @@ function App() {
         </TableBody>
       </Table>
     </TableContainer>
-  );*/
-  return(
+  );
+  return (
     <>
       <Lab></Lab>
     </>
-  )
+  );
 }
 export default App;
