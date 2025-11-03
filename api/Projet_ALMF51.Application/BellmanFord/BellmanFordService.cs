@@ -6,7 +6,6 @@ namespace Projet_ALMF51.Application.BellmanFord
 {
     public class BellmanFordService : IBellmanFordService
     {
-        const int INFINITY = int.MaxValue;
         public BellmanFordResult Compute(Graph graph, string start)
         {
             var distances = new Dictionary<string, int>();
@@ -15,7 +14,7 @@ namespace Projet_ALMF51.Application.BellmanFord
 
             foreach (var node in graph.Nodes)
             {
-                distances[node] = INFINITY;
+                distances[node] = int.MaxValue;
                 parents[node] = null;
             }
             distances[start] = 0;
