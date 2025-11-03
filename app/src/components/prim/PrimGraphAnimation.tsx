@@ -283,7 +283,7 @@ const PrimGraphAnimation = forwardRef<PrimHandle, PrimProps>(
 
     return (
       <Box display="flex" flexDirection="column" alignItems="center" sx={{ p: 3 }}>
-        <Typography variant="body1" sx={{ mb: 2 }}>
+        <Typography variant="body1" sx={{ color: "#64748b", fontSize: 16 }}>
           Algorithme de Prim
         </Typography>
 

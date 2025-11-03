@@ -261,7 +261,7 @@ const FloydWarshallGraphAnimation = forwardRef<FloydHandle, Props>(
       <Box sx={{ p: { xs: 2, md: 4 } }}>
         {/* En-tête + actions */}
         <Stack direction={{ xs: "column", sm: "row" }} alignItems="center" justifyContent="space-between" sx={{ mb: 2 }} spacing={2}>
-          <Typography variant="h6" sx={{ textAlign: { xs: "center", sm: "left" } }}>
+          <Typography variant="body1" sx={{ color: "#64748b", fontSize: 16 }}>
             Floyd–Warshall — Matrice des plus courts chemins (toutes paires)
           </Typography>
           <Stack direction="row" spacing={1} alignItems="center">

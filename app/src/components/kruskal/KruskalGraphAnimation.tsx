@@ -286,7 +286,7 @@ const KruskalGraphAnimation = forwardRef<KruskalHandle, KruskalProps>(
 
     return (
       <Box display="flex" flexDirection="column" alignItems="center" sx={{ p: 3 }}>
-        <Typography variant="h6" sx={{ mb: 2 }}>
+        <Typography  variant="body1" sx={{ color: "#64748b", fontSize: 16 }}>
           Algorithme de Kruskal — Étape par étape
         </Typography>
 

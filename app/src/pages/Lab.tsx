@@ -69,8 +69,8 @@ export default function Lab() {
   };
 
   // Champs à afficher selon l’algo
-  const needsStart = ["BFS", "DFS", "Dijkstra", "Bellman-Ford", "Prim"].includes(algo);
-  const needsTarget = ["Dijkstra", "Bellman-Ford", "Floyd-Warshall"].includes(algo);
+  const needsStart = ["BFS", "DFS"].includes(algo);
+  const needsTarget = [].includes(algo);
 
   return (
     
@@ -91,7 +91,7 @@ export default function Lab() {
       >
         <Stack spacing={2}>
           <Typography variant="h6" sx={{ fontWeight: 700, color: "#0f172a" }}>
-            ⚙️ Paramètres
+            Paramètres
           </Typography>
 
           <TextField
@@ -143,10 +143,6 @@ export default function Lab() {
           )}
 
           <Divider />
-
-          <Typography variant="body2" color="text.secondary">
-            💡 Les contrôles (Play/Pause/Vitesse) restent ceux de chaque composant d’animation que tu as déjà.
-          </Typography>
         </Stack>
       </Box>
 

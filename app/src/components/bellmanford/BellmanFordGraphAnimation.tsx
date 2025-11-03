@@ -19,7 +19,6 @@ import {
   Alert,
 } from "@mui/material";
 import ReplayIcon from "@mui/icons-material/Replay";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import RouteIcon from "@mui/icons-material/Route";
 import { graphN } from "../../data/graphNegative";
 import { computeBellmanFordAsync } from "../../services/bellmanFordService";
@@ -36,8 +35,8 @@ type ApiResult = {
 
 // --- Props & Handle (compat barre de contrôle) ---
 type BFProps = {
-  start: string;
-  target: string;
+  start?: string;  // <- rend optionnels pour permettre défaut s1/as2
+  target?: string;
   onSummaryChange?: (summary: Record<string, any>) => void;
   onLog?: (msg: string) => void;
 };
@@ -59,7 +58,7 @@ function reconstructPath(
   let cur: string | null = target;
   const guard = new Set<string>();
   while (cur != null) {
-    if (guard.has(cur)) return null; // boucle improbable
+    if (guard.has(cur)) return null;
     guard.add(cur);
     path.push(cur);
     if (cur === start) break;
@@ -81,9 +80,28 @@ const BellmanFordGraphAnimation = forwardRef<BFHandle, BFProps>(
       []
     );
 
-    // UI state
-    const [start1, setStart1] = useState(start);
-    const [target1, setTarget1] = useState(target);
+    // --- États avec valeurs par défaut "s1" et "as2"
+    const [start1, setStart1] = useState<string>(start ?? "s1");
+    const [target1, setTarget1] = useState<string>(target ?? "as2");
+
+    // Si "s1"/"as2" ne sont pas présents (ou identiques), on corrige après chargement des nodes
+    useEffect(() => {
+      if (!cities.length) return;
+
+      let s = start1;
+      let t = target1;
+
+      if (!cities.includes(s)) s = cities[0];
+      // s et t ne doivent pas être égaux, ni t absent
+      if (!cities.includes(t) || t === s) {
+        t = cities.find((c) => c !== s) ?? s;
+      }
+
+      if (s !== start1) setStart1(s);
+      if (t !== target1) setTarget1(t);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [cities]);
+
     const [running, setRunning] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [total, setTotal] = useState<number | null>(null);
@@ -164,11 +182,11 @@ const BellmanFordGraphAnimation = forwardRef<BFHandle, BFProps>(
       if (!n) return;
       n.body.data.nodes.update({
         id: s,
-        color: { background: "#fde68a", border: "#f59e0b" }, // départ
+        color: { background: "#fde68a", border: "#f59e0b" },
       });
       n.body.data.nodes.update({
         id: t,
-        color: { background: "#fecaca", border: "#ef4444" }, // arrivée
+        color: { background: "#fecaca", border: "#ef4444" },
       });
     };
 
@@ -183,7 +201,6 @@ const BellmanFordGraphAnimation = forwardRef<BFHandle, BFProps>(
         id: v,
         color: { background: "#bbf7d0", border: "#22c55e" },
       });
-      onLog?.(`Étape: ${u} → ${v}`);
     };
 
     const updateDistanceTooltips = (dist: DistMap) => {
@@ -205,7 +222,6 @@ const BellmanFordGraphAnimation = forwardRef<BFHandle, BFProps>(
       currentStepRef.current = i + 1;
       if (i + 1 >= pairs.length) {
         setRunning(false);
-        onLog?.("✅ Chemin coloré");
       }
     };
 
@@ -231,27 +247,22 @@ const BellmanFordGraphAnimation = forwardRef<BFHandle, BFProps>(
       highlightEndpoints(start1, target1);
 
       try {
-        // ✅ nouvelle API : seulement (graph, start)
-        const res: ApiResult = await computeBellmanFordAsync(graphN, start1);
+        // API : (graph, start)
+        const res: ApiResult = await computeBellmanFordAsync(graphN as any, start1);
 
-        // distances tooltip
         if (res?.distances) updateDistanceTooltips(res.distances);
 
-        // reconstruire le chemin côté front
         const path = reconstructPath(res.parents ?? {}, start1, target1);
         if (!path || path.length < 2) {
           setRunning(false);
           setError("Aucun chemin trouvé (via parents).");
-          onLog?.("Aucun chemin reconstruit depuis la map 'parents'.");
           return;
         }
 
-        // pairs à animer
         const pairs: Array<[string, string]> = [];
         for (let i = 0; i < path.length - 1; i++) pairs.push([path[i], path[i + 1]]);
         pairsRef.current = pairs;
 
-        // coût final si dispo
         const totalCost = res.distances?.[target1];
         setTotal(Number.isFinite(totalCost) ? (totalCost as number) : null);
 
@@ -263,13 +274,11 @@ const BellmanFordGraphAnimation = forwardRef<BFHandle, BFProps>(
           path,
         });
 
-        // focus caméra sur le chemin
         networkRef.current.fit({
           nodes: path,
           animation: { duration: 800, easingFunction: "easeInOutQuad" },
         });
 
-        // animation
         let idx = 0;
         intervalRef.current = window.setInterval(() => {
           runStep(idx);
@@ -282,7 +291,6 @@ const BellmanFordGraphAnimation = forwardRef<BFHandle, BFProps>(
       } catch (e: any) {
         setRunning(false);
         setError(e?.message || "Erreur lors de l’appel API /bellman-ford.");
-        onLog?.(`❌ ${e?.message}`);
       }
     };
 
@@ -291,7 +299,6 @@ const BellmanFordGraphAnimation = forwardRef<BFHandle, BFProps>(
       play: () => {
         if (!pairsRef.current.length || running) return;
         setRunning(true);
-        onLog?.("▶️ Lecture Bellman-Ford");
         let idx = currentStepRef.current;
         clearTimer();
         intervalRef.current = window.setInterval(() => {
@@ -306,7 +313,6 @@ const BellmanFordGraphAnimation = forwardRef<BFHandle, BFProps>(
       pause: () => {
         clearTimer();
         setRunning(false);
-        onLog?.("⏸️ Pause Bellman-Ford");
       },
       reset: () => {
         clearTimer();
@@ -316,7 +322,6 @@ const BellmanFordGraphAnimation = forwardRef<BFHandle, BFProps>(
         setTotal(null);
         currentStepRef.current = 0;
         pairsRef.current = [];
-        onLog?.("↺ Réinitialisation Bellman-Ford");
       },
       step: () => {
         runStep(currentStepRef.current);
@@ -325,7 +330,7 @@ const BellmanFordGraphAnimation = forwardRef<BFHandle, BFProps>(
 
     return (
       <Box display="flex" flexDirection="column" alignItems="center" sx={{ p: { xs: 3, md: 5 } }}>
-        <Typography variant="body1" sx={{ color: "#64748b", fontSize: 16, mb: 2 }}>
+        <Typography variant="body1" sx={{ color: "#64748b", fontSize: 16 }}>
           Bellman-Ford — plus court chemin (poids négatifs autorisés)
         </Typography>
 
@@ -387,12 +392,7 @@ const BellmanFordGraphAnimation = forwardRef<BFHandle, BFProps>(
           </TextField>
 
           <Stack direction="row" spacing={1}>
-            <Button
-              variant="contained"
-              startIcon={<RouteIcon />}
-              disabled={running}
-              onClick={handleRun}
-            >
+            <Button variant="contained" startIcon={<RouteIcon />} disabled={running} onClick={handleRun}>
               {running ? "Animation..." : "Lancer Bellman-Ford"}
             </Button>
             <Button
@@ -407,7 +407,6 @@ const BellmanFordGraphAnimation = forwardRef<BFHandle, BFProps>(
                 setTotal(null);
                 currentStepRef.current = 0;
                 pairsRef.current = [];
-                onLog?.("Reset visuel Bellman-Ford");
               }}
             >
               Reset

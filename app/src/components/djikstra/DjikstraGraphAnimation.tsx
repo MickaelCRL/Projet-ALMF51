@@ -302,13 +302,7 @@ const DijkstraGraphAnimation = forwardRef<DijkstraHandle, DijkstraProps>(
         sx={{ p: { xs: 3, md: 5 } }}
       >
         <Typography
-          variant="body1"
-          sx={{
-            color: "#64748b",
-            fontFamily: "Inter, system-ui, sans-serif",
-            fontSize: "16px",
-            mb: 2,
-          }}
+          variant="body1" sx={{ color: "#64748b", fontSize: 16 }}
         >
           Dijkstra — Chemin le plus court entre deux villes
         </Typography>
