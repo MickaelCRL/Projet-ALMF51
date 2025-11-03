@@ -11,18 +11,27 @@ import {
 import Lab from "./pages/Lab";
 import useSWR from "swr";
 import { graph } from "./data/graph";
+import { graphN } from "./data/graphNegative";
 
 import { computeFloydWarshallAsync } from "./services/floydWarshallService";
 import { computeBellmanFordAsync } from "./services/bellmanFordService";
 
 function App() {
-  const start = "s1";
-  const { data: bellmanford } = useSWR(
-    ["bellmanford", graph, start],
-    () => computeBellmanFordAsync(graph, start)
+
+  const start = "Rennes";
+  const startNegative = "s1";
+  const { data: bellmanford } = useSWR(["bellmanford", graph, start], () =>
+    computeBellmanFordAsync(graph, start)
+  );
+
+  const { data: bellmanfordWithNegative } = useSWR(
+    ["bellmanfordWithNegative", graphN, startNegative],
+    () => computeBellmanFordAsync(graphN, startNegative)
+
   );
 
   console.log("bellmanford", bellmanford);
+  console.log("bellmanfordWithNegative", bellmanfordWithNegative);
 
   const { data: floydwarshall } = useSWR(["floydwarshall", graph], () =>
     computeFloydWarshallAsync(graph)
@@ -32,40 +41,7 @@ function App() {
 
   const { distances, next, nodes } = floydwarshall;
 
- /* return (
-    <TableContainer component={Paper} style={{ maxHeight: 600 }}>
-      <Table stickyHeader>
-        <TableHead>
-          <TableRow>
-            <TableCell>From / To</TableCell>
-            {nodes.map((n: any, index: any) => (
-              <TableCell key={index} align="center">
-                {n}
-              </TableCell>
-            ))}
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {(nodes as string[]).map((fromNode, i) => (
-            <TableRow key={fromNode}>
-              <TableCell component="th" scope="row">
-                {fromNode}
-              </TableCell>
-              {(nodes as string[]).map((_, j) => (
-                <TableCell key={j} align="center">
-                  <Typography variant="body2">{distances[i][j]}</Typography>
-                  <Typography variant="caption" color="textSecondary">
-                    → {next[i][j]}
-                  </Typography>
-                </TableCell>
-              ))}
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
-  );*/
-  return (
+ return(
     <>
       <Lab></Lab>
     </>

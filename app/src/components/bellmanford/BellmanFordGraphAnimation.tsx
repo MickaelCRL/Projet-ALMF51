@@ -21,7 +21,7 @@ import {
 import ReplayIcon from "@mui/icons-material/Replay";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import RouteIcon from "@mui/icons-material/Route";
-import { graph } from "../../data/graphNegative";
+import { graphN } from "../../data/graphNegative";
 import { computeBellmanFordAsync } from "../../services/bellmanFordService";
 
 const STEP_MS = 900;
@@ -77,7 +77,7 @@ const BellmanFordGraphAnimation = forwardRef<BFHandle, BFProps>(
     const intervalRef = useRef<number | null>(null);
 
     const cities = useMemo(
-      () => (Array.isArray(graph.nodes) ? [...graph.nodes].sort() : []),
+      () => (Array.isArray(graphN.nodes) ? [...graphN.nodes].sort() : []),
       []
     );
 
@@ -96,13 +96,13 @@ const BellmanFordGraphAnimation = forwardRef<BFHandle, BFProps>(
     useEffect(() => {
       if (!containerRef.current) return;
 
-      const nodes = graph.nodes.map((city: string) => ({
+      const nodes = graphN.nodes.map((city: string) => ({
         id: city,
         label: city,
         color: "#6366f1",
       }));
 
-      const edges: Edge[] = graph.edges.map((e: any) => ({
+      const edges: Edge[] = graphN.edges.map((e: any) => ({
         id: `${e.from}->${e.to}`,
         from: e.from,
         to: e.to,
@@ -232,7 +232,7 @@ const BellmanFordGraphAnimation = forwardRef<BFHandle, BFProps>(
 
       try {
         // ✅ nouvelle API : seulement (graph, start)
-        const res: ApiResult = await computeBellmanFordAsync(graph, start1);
+        const res: ApiResult = await computeBellmanFordAsync(graphN, start1);
 
         // distances tooltip
         if (res?.distances) updateDistanceTooltips(res.distances);
