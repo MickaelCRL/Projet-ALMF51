@@ -1,11 +1,13 @@
 ﻿using Projet_ALMF51.Domain;
 using Projet_ALMF51.Domain.Results;
+using System.Collections.Generic;
 
 namespace Projet_ALMF51.Application.BellmanFord
 {
     public class BellmanFordService : IBellmanFordService
     {
         public BellmanFordResult Compute(Graph graph, string start)
+
         {
             var distances = new Dictionary<string, double>();
             var parents = new Dictionary<string, string?>();
@@ -14,8 +16,9 @@ namespace Projet_ALMF51.Application.BellmanFord
             foreach (var node in graph.Nodes)
             {
                 distances[node] = double.PositiveInfinity;
-                parents[node] = null;
+                parent[node] = null;
             }
+            dist[start] = 0;
 
             distances[start] = 0;
             parents[start] = null;
@@ -41,6 +44,12 @@ namespace Projet_ALMF51.Application.BellmanFord
             }
 
             return new BellmanFordResult(distances, parents);
+            var path = new List<string>();
+            string? cur = target;
+            var guard = new HashSet<string>();
+            while (cur != null && !guard.Contains(cur))
+                cur = parent[cur];
+                // HasNegativeCycle = false
         }
     }
 }

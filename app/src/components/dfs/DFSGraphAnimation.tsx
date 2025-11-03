@@ -1,176 +1,429 @@
-import { useEffect, useRef, useState } from "react";
+// DFSGraphAnimation.tsx
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 import { Network, type Edge } from "vis-network/standalone";
-import { Box, Paper, Typography, Button } from "@mui/material";
+import { Box, Paper, Typography, Button, Chip, Stack } from "@mui/material";
 import ReplayIcon from "@mui/icons-material/Replay";
+import PauseIcon from "@mui/icons-material/Pause";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import useSWR from "swr";
 import { computeDFSAsync } from "../../services/dfsService";
 import { graph } from "../../data/graph";
 
+const STEP_MS = 800;
 type ParentsMap = Record<string, string | null>;
 
-export default function DFSGraphAnimation() {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const networkRef = useRef<Network | null>(null);
-  const [isFinished, setIsFinished] = useState(false);
+type DFSProps = {
+  start: string;
+  onSummaryChange?: (summary: Record<string, any>) => void;
+  onLog?: (message: string) => void;
+};
 
-  const start = "Rennes";
+export type DFSHandle = {
+  play: () => void;
+  pause: () => void;
+  reset: () => void;
+  step: () => void;
+};
 
-  const { data: dfsResult } = useSWR(["dfs", graph, start], () =>
-    computeDFSAsync(graph, start)
-  );
+// --- rend le graphe non orienté pour l’API (duplique les arêtes dans les 2 sens)
+function expandUndirected<G extends { edges: any[]; isOriented?: boolean }>(g: G): G {
+  const edges: any[] = [];
+  const seen = new Set<string>();
+  for (const e of g.edges) {
+    const k1 = `${e.from}|${e.to}`;
+    const k2 = `${e.to}|${e.from}`;
+    if (!seen.has(k1)) { edges.push({ ...e }); seen.add(k1); }
+    if (!seen.has(k2)) { edges.push({ from: e.to, to: e.from, weight: e.weight }); seen.add(k2); }
+  }
+  return { ...(g as any), edges, isOriented: false };
+}
 
-  const runAnimation = () => {
-    if (!networkRef.current || !dfsResult) return;
+const DFSGraphAnimation = forwardRef<DFSHandle, DFSProps>(
+  ({ start, onSummaryChange, onLog }, ref) => {
+    const containerRef = useRef<HTMLDivElement | null>(null);
+    const networkRef = useRef<Network | null>(null);
 
-    const { order, parents } = dfsResult as {
-      order: string[];
-      parents: ParentsMap;
-    };
-    const network = networkRef.current as any;
+    // état d'animation
+    const [isFinished, setIsFinished] = useState(false);
+    const [playing, setPlaying] = useState(false);
+    const [currentIndex, setCurrentIndex] = useState(0);
 
-    network.body.data.nodes
-      .get()
-      .forEach((n: any) =>
-        network.body.data.nodes.update({ id: n.id, color: "#6366f1" })
-      );
-    network.body.data.edges
-      .get()
-      .forEach((e: any) =>
-        network.body.data.edges.update({ id: e.id, color: "#64748b" })
-      );
+    // verrouillage Changement de sommet
+    const [activeStart, setActiveStart] = useState(start);
+    const [queuedStart, setQueuedStart] = useState<string | null>(null);
 
-    setIsFinished(false);
+    // données graphe & DFS
+    const G = useRef(expandUndirected(graph)).current;
+    const orderRef = useRef<string[]>([]);
+    const parentsRef = useRef<ParentsMap>({});
 
-    let index = 0;
-    const interval = setInterval(() => {
-      if (index > 0) {
-        const prev = order[index - 1];
-        network.body.data.nodes.update({
-          id: prev,
-          color: { background: "#6366f1", border: "#4f46e5" },
-        });
+    // timer + token anti-zombies
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const runTokenRef = useRef(0);
 
-        const parent = parents[order[index]];
-        if (parent) {
-          const edge = network.body.data.edges
-            .get()
-            .find(
-              (e: any) =>
-                (e.from === parent && e.to === order[index]) ||
-                (e.from === order[index] && e.to === parent)
-            );
-          if (edge) {
-            network.body.data.edges.update({ id: edge.id, color: "#64748b" });
-          }
-        }
-      }
-
-      if (index < order.length) {
-        const current = order[index];
-        network.body.data.nodes.update({
-          id: current,
-          color: { background: "#a5b4fc", border: "#6366f1" },
-        });
-
-        const parent = parents[current];
-        if (parent) {
-          const edge = network.body.data.edges
-            .get()
-            .find(
-              (e: any) =>
-                (e.from === parent && e.to === current) ||
-                (e.from === current && e.to === parent)
-            );
-          if (edge) {
-            network.body.data.edges.update({ id: edge.id, color: "red" });
-          }
-        }
-        index++;
-      } else {
-        clearInterval(interval);
-        setIsFinished(true);
-      }
-    }, 1000);
-  };
-
-  useEffect(() => {
-    if (!containerRef.current || !dfsResult) return;
-
-    const nodes = graph.nodes.map((city) => ({
-      id: city,
-      label: city,
-      color: "#6366f1",
-    }));
-    const edges: Edge[] = graph.edges.map((e) => ({
-      id: `${e.from}->${e.to}`,
-      from: e.from,
-      to: e.to,
-      color: "#64748b",
-    }));
-
-    networkRef.current = new Network(
-      containerRef.current,
-      { nodes, edges },
-      {
-        nodes: { shape: "dot", size: 22, borderWidth: 2 },
-        edges: {
-          arrows: { to: false },
-          width: 2.5,
-          smooth: { enabled: true, type: "cubicBezier", roundness: 0.4 },
-        },
-        physics: { enabled: true },
-      }
+    // --- SWR stabilisé (clé = activeStart)
+    const { data: dfsResult } = useSWR(
+      ["dfs-tree", activeStart],
+      () => computeDFSAsync(G as any, activeStart),
+      { revalidateOnFocus: false, revalidateOnReconnect: false }
     );
 
-    runAnimation();
-  }, [dfsResult]);
+    const clearTimer = () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
 
-  return (
-    <Box
-      display="flex"
-      flexDirection="column"
-      alignItems="center"
-      sx={{ p: { xs: 3, md: 5 } }}
-    >
-      <Typography
-        variant="body1"
-        sx={{
-          color: "#64748b",
-          fontFamily: "Inter, system-ui, sans-serif",
-          fontSize: "16px",
-          mb: 2,
-        }}
-      >
-        Parcours DFS du graphe
-      </Typography>
+    const ensureNetwork = () => {
+      if (networkRef.current || !containerRef.current) return;
+      networkRef.current = new Network(
+        containerRef.current,
+        { nodes: [], edges: [] },
+        {
+          nodes: { shape: "dot", size: 22, borderWidth: 2 },
+          edges: { arrows: { to: false }, smooth: true },
+          physics: {
+            enabled: true,
+            solver: "forceAtlas2Based",
+            stabilization: { iterations: 200 },
+          },
+          interaction: { hover: true },
+        }
+      );
+    };
 
-      <Paper
-        ref={containerRef}
-        elevation={6}
-        sx={{
-          height: "400px",
-          width: "100%",
-          maxWidth: "600px",
-          border: "2px solid #cbd5e1",
-          borderRadius: "16px",
-          backgroundColor: "#ffffff",
-        }}
-      />
+    const setGraphNodesOnly = () => {
+      const n: any = networkRef.current;
+      if (!n) return;
+      const nodes = G.nodes.map((city: string) => ({
+        id: city,
+        label: city,
+        color: "#6366f1",
+      }));
+      n.setData({ nodes, edges: [] }); // reset data propre
+    };
 
-      {isFinished && (
-        <Button
-          onClick={runAnimation}
-          startIcon={<ReplayIcon />}
+    const resetVisual = () => {
+      const n: any = networkRef.current;
+      if (!n) return;
+      // supprimer toutes les arêtes
+      const allEdges = n.body.data.edges.get().map((e: any) => e.id);
+      n.body.data.edges.remove(allEdges);
+      // remettre la couleur des nœuds
+      n.body.data.nodes.get().forEach((node: any) =>
+        n.body.data.nodes.update({ id: node.id, color: "#6366f1" })
+      );
+    };
+
+    const addEdge = (from: string, to: string) => {
+      const n: any = networkRef.current;
+      if (!n) return;
+      const id = `${from}->${to}`;
+      if (!n.body.data.edges.get(id)) {
+        n.body.data.edges.add({
+          id,
+          from,
+          to,
+          color: "#22c55e",
+          width: 3.5,
+        } as Edge);
+      }
+      n.stabilize?.(10); // petit lissage
+    };
+
+    // --- Init/Déstruct du Network (une seule fois)
+    useEffect(() => {
+      ensureNetwork();
+      return () => {
+        clearTimer();
+        networkRef.current?.destroy();
+        networkRef.current = null;
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // --- Verrou interne : si prop `start` change pendant lecture, on queue
+    useEffect(() => {
+      if (start === activeStart) return;
+      if (playing) {
+        setQueuedStart(start);
+        onLog?.(`🔒 Changement de sommet "${start}" mis en attente (animation en cours).`);
+      } else {
+        setActiveStart(start); // pas de lecture → applique direct
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [start]);
+
+    // --- Appliquer un start & armer l’animation (depuis dfsResult)
+    useEffect(() => {
+      if (!dfsResult) return;
+      const token = ++runTokenRef.current; // invalider anciens cycles
+
+      clearTimer();
+      setPlaying(false);
+      setIsFinished(false);
+      setCurrentIndex(0);
+
+      ensureNetwork();
+      setGraphNodesOnly();
+      resetVisual();
+
+      // charger résultats
+      orderRef.current = dfsResult.order || [];
+      parentsRef.current = dfsResult.parents || {};
+
+      onSummaryChange?.({
+        algo: "DFS (arbre libre)",
+        order: orderRef.current,
+        start: activeStart,
+      });
+      onLog?.(`DFS initialisé depuis ${activeStart}`);
+
+      // premier sommet
+      const n: any = networkRef.current;
+      if (orderRef.current.length > 0) {
+        n?.body.data.nodes.update({
+          id: orderRef.current[0],
+          color: { background: "#a5b4fc", border: "#6366f1" },
+        });
+      }
+
+      // démarrer si assez de sommets
+      if (token === runTokenRef.current) {
+        if (orderRef.current.length > 1) {
+          setPlaying(true);
+        } else {
+          setIsFinished(true);
+          setPlaying(false);
+        }
+      }
+
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [dfsResult, activeStart]);
+
+    // --- Si l’animation s’arrête et qu’un start est en attente, on l’applique
+    useEffect(() => {
+      if (!playing && queuedStart && queuedStart !== activeStart) {
+        onLog?.(`✅ Application du sommet en attente "${queuedStart}".`);
+        setActiveStart(queuedStart);
+        setQueuedStart(null);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [playing]);
+
+    // --- Étape unique (protégée par token)
+    const runStep = (i: number) => {
+      const token = runTokenRef.current;
+      const n: any = networkRef.current;
+      const order = orderRef.current;
+      const parents = parentsRef.current;
+      if (!n || i <= 0 || i >= order.length) return;
+      if (token !== runTokenRef.current) return; // annulé
+
+      const prev = order[i - 1];
+      const current = order[i];
+      const parent = parents[current];
+
+      // prev visité
+      n.body.data.nodes.update({
+        id: prev,
+        color: { background: "#6366f1", border: "#4f46e5" },
+      });
+
+      // arête parent → current
+      if (parent) {
+        addEdge(parent, current);
+        onLog?.(`Connexion : ${parent} → ${current}`);
+      }
+
+      // current en surbrillance
+      n.body.data.nodes.update({
+        id: current,
+        color: { background: "#a5b4fc", border: "#6366f1" },
+      });
+
+      setCurrentIndex(i);
+      if (i === order.length - 1) {
+        setIsFinished(true);
+        setPlaying(false);
+        onLog?.("✅ DFS terminé !");
+      }
+    };
+
+    // --- Boucle d’animation (timer nettoyé + token)
+    useEffect(() => {
+      clearTimer();
+      if (!playing) return;
+
+      const token = ++runTokenRef.current; // nouveau cycle
+      let idx = currentIndex;
+
+      intervalRef.current = setInterval(() => {
+        if (token !== runTokenRef.current) return; // zombie
+        const order = orderRef.current;
+        if (idx + 1 < order.length) {
+          runStep(idx + 1);
+          idx++;
+        } else {
+          clearTimer();
+          setIsFinished(true);
+          setPlaying(false);
+        }
+      }, STEP_MS);
+
+      return clearTimer;
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [playing]);
+
+    // --- Contrôles exposés
+    useImperativeHandle(ref, () => ({
+      play: () => {
+        if (!isFinished && !playing) {
+          setPlaying(true);
+          onLog?.("▶️ Lecture DFS");
+        }
+      },
+      pause: () => {
+        clearTimer();
+        setPlaying(false);
+        onLog?.("⏸️ Pause DFS");
+      },
+      reset: () => {
+        runTokenRef.current++; // invalide
+        clearTimer();
+        setPlaying(false);
+        setCurrentIndex(0);
+        resetVisual();
+
+        const order = orderRef.current;
+        if (order.length > 0) {
+          (networkRef.current as any)?.body.data.nodes.update({
+            id: order[0],
+            color: { background: "#a5b4fc", border: "#6366f1" },
+          });
+        }
+        setIsFinished(order.length <= 1);
+        onLog?.("↺ Réinitialisation DFS");
+      },
+      step: () => {
+        const order = orderRef.current;
+        const next = Math.min(currentIndex + 1, Math.max(order.length - 1, 0));
+        if (next !== currentIndex) {
+          runStep(next);
+          onLog?.(`Étape ${next}/${order.length - 1}`);
+        }
+      },
+    }));
+
+    return (
+      <Box display="flex" flexDirection="column" alignItems="center" sx={{ p: { xs: 3, md: 5 } }}>
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+          <Typography variant="body1" sx={{ color: "#64748b", fontSize: 16 }}>
+            DFS — Construction de l’arbre dans l’espace
+          </Typography>
+          {playing && <Chip label="Animation en cours (verrouillée)" size="small" />}
+          {!playing && queuedStart && (
+            <Chip label={`En attente: ${queuedStart}`} size="small" variant="outlined" />
+          )}
+        </Stack>
+
+        <Paper
+          ref={containerRef}
+          elevation={6}
           sx={{
-            mt: 2,
-            textTransform: "none",
-            fontSize: "16px",
-            color: "black",
+            height: 460,
+            width: "100%",
+            maxWidth: 760,
+            border: "2px solid #cbd5e1",
+            borderRadius: "16px",
+            backgroundColor: "#ffffff",
           }}
-        >
-          Rejouer
-        </Button>
-      )}
-    </Box>
-  );
-}
+        />
+
+        <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
+          <Button
+            startIcon={<PlayArrowIcon />}
+            onClick={() => { if (!isFinished && !playing) setPlaying(true); }}
+            disabled={playing || isFinished}
+            sx={{ textTransform: "none", color: "black" }}
+          >
+            Lire
+          </Button>
+          <Button
+            startIcon={<PauseIcon />}
+            onClick={() => setPlaying(false)}
+            disabled={!playing}
+            sx={{ textTransform: "none", color: "black" }}
+          >
+            Pause
+          </Button>
+          <Button
+            startIcon={<ReplayIcon />}
+            onClick={() => {
+              runTokenRef.current++;
+              clearTimer();
+              setPlaying(false);
+              setIsFinished(false);
+              setCurrentIndex(0);
+              resetVisual();
+
+              const order = orderRef.current;
+              if (order.length > 0) {
+                (networkRef.current as any)?.body.data.nodes.update({
+                  id: order[0],
+                  color: { background: "#a5b4fc", border: "#6366f1" },
+                });
+              }
+              if (order.length > 1) setPlaying(true);
+              onLog?.("🔁 Rejouer DFS");
+            }}
+            sx={{ textTransform: "none", color: "black" }}
+          >
+            Rejouer
+          </Button>
+        </Stack>
+
+        <Typography variant="caption" sx={{ mt: 1, color: "#64748b" }}>
+          Sommet actif : <b>{activeStart}</b>
+          {queuedStart && playing && <> — (nouveau sommet <b>{queuedStart}</b> en attente)</>}
+        </Typography>
+
+        {isFinished && (
+          <Button
+            startIcon={<ReplayIcon />}
+            sx={{ mt: 2, textTransform: "none", color: "black" }}
+            onClick={() => {
+              runTokenRef.current++;
+              clearTimer();
+              setPlaying(false);
+              setIsFinished(false);
+              setCurrentIndex(0);
+              resetVisual();
+
+              const order = orderRef.current;
+              if (order.length > 0) {
+                (networkRef.current as any)?.body.data.nodes.update({
+                  id: order[0],
+                  color: { background: "#a5b4fc", border: "#6366f1" },
+                });
+              }
+              if (order.length > 1) setPlaying(true);
+              onLog?.("🔁 Rejouer DFS");
+            }}
+          >
+            Rejouer
+          </Button>
+        )}
+      </Box>
+    );
+  }
+);
+
+export default DFSGraphAnimation;

@@ -1,0 +1,109 @@
+﻿using Projet_ALMF51.Domain;
+using Projet_ALMF51.Domain.Results;
+using System.Collections.Generic;
+
+namespace Projet_ALMF51.Application.BellmanFord
+{
+    public class BellmanFordService : IBellmanFordService
+    {
+<<<<<<< HEAD
+        public BellmanFordResult Compute(Graph graph, string start)
+        {
+            var distances = new Dictionary<string, double>();
+            var parents = new Dictionary<string, string?>();
+            var L = new HashSet<string>();
+
+            foreach (var node in graph.Nodes)
+            {
+                distances[node] = double.PositiveInfinity;
+                parents[node] = null;
+=======
+        private const long INF = long.MaxValue / 4; // grande sentinelle, évite overflow
+
+        public OptimalPathResult Compute(Graph graph, string start, string target)
+        {
+            // Distances & parents
+            var dist = new Dictionary<string, long>();
+            var parent = new Dictionary<string, string?>();
+
+            foreach (var node in graph.Nodes)
+            {
+                dist[node] = INF;
+                parent[node] = null;
+>>>>>>> d026e8381311f1fee108a490d61ecd009b703fd2
+            }
+            dist[start] = 0;
+
+            distances[start] = 0;
+            parents[start] = null;
+            L.Add(start);
+
+            while (L.Count > 0)
+            {
+                string t = L.First();
+                L.Remove(t);
+
+                foreach (var edge in graph.GetOutgoingEdges(t))
+                {
+                    string k = edge.To;
+                    double w = edge.Weight;
+
+                    if (distances[k] > distances[t] + w)
+                    {
+                        distances[k] = distances[t] + w;
+                        parents[k] = t;
+                        L.Add(k);
+                    }
+                }
+            }
+
+<<<<<<< HEAD
+            return new BellmanFordResult(distances, parents);
+=======
+            void RelaxEdge(string from, string to, int weight)
+            {
+                if (distances[from] != int.MaxValue)
+                {
+                    int newDistance = distances[from] + weight;
+                    if (newDistance < distances[to])
+                    {
+                        distances[to] = newDistance;
+                        parents[to] = from;
+                    }
+                }
+            }
+
+            // Chemin introuvable ?
+            if (dist[target] == INF)
+            {
+                return new OptimalPathResult
+                {
+                    Path = new List<string>(),
+                    TotalCost = int.MaxValue
+                };
+            }
+
+            // Reconstruction du chemin target -> start
+            var path = new List<string>();
+            string? cur = target;
+            var guard = new HashSet<string>();
+            while (cur != null && !guard.Contains(cur))
+            {
+                guard.Add(cur);
+                path.Add(cur);
+                cur = parent[cur];
+            }
+
+            path.Reverse();
+
+            return new OptimalPathResult
+            {
+                Path = path,
+                TotalCost = (int)dist[target] // si tu as de gros poids, fais TotalCost en long
+                // HasNegativeCycle = false
+            };
+>>>>>>> d026e8381311f1fee108a490d61ecd009b703fd2
+        }
+    }
+}
+
