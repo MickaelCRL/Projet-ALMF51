@@ -1,3 +1,4 @@
+// src/components/bellmanford/BellmanFordGraphAnimation.tsx
 import React, {
   useEffect,
   useMemo,
@@ -20,45 +21,20 @@ import {
 import ReplayIcon from "@mui/icons-material/Replay";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import RouteIcon from "@mui/icons-material/Route";
-import { graph } from "../../data/graph";
+import { graph } from "../../data/graphNegative";
 import { computeBellmanFordAsync } from "../../services/bellmanFordService";
 
 const STEP_MS = 900;
 
-// ----- Types tolérants côté API -----
-type DistMap = Record<string, number | string | null>;
-type PredMap = Record<string, string | null>;
-
-type Relaxation = {
-  u: string;
-  v: string;
-  improved?: boolean;
-  newDist?: number;
+// --- Types correspondant à ta nouvelle API ---
+type DistMap = Record<string, number>;
+type ParentsMap = Record<string, string | null>;
+type ApiResult = {
+  distances: DistMap;
+  parents: ParentsMap;
 };
 
-type Iteration = {
-  index?: number;
-  relaxations?: Relaxation[];
-  distances?: DistMap;
-  predecessor?: PredMap;
-};
-
-type BellmanFordResult = {
-  start?: string;
-  target?: string;
-  distances?: DistMap;
-  predecessor?: PredMap; // ou 'parents'
-  parents?: PredMap;
-  Path?: string[];
-  path?: string[];
-  TotalCost?: number;
-  totalCost?: number;
-  iterations?: Iteration[];
-  hasNegativeCycle?: boolean;
-  negativeCycle?: string[]; // cycle explicite si fourni
-};
-
-// ----- Props & Handle -----
+// --- Props & Handle (compat barre de contrôle) ---
 type BFProps = {
   start: string;
   target: string;
@@ -72,6 +48,27 @@ export type BFHandle = {
   reset: () => void;
   step: () => void;
 };
+
+// reconstruit le chemin target ← … ← start via parents renvoyés par l’API
+function reconstructPath(
+  parents: ParentsMap,
+  start: string,
+  target: string
+): string[] | null {
+  const path: string[] = [];
+  let cur: string | null = target;
+  const guard = new Set<string>();
+  while (cur != null) {
+    if (guard.has(cur)) return null; // boucle improbable
+    guard.add(cur);
+    path.push(cur);
+    if (cur === start) break;
+    cur = parents[cur] ?? null;
+  }
+  if (path[path.length - 1] !== start) return null;
+  path.reverse();
+  return path;
+}
 
 const BellmanFordGraphAnimation = forwardRef<BFHandle, BFProps>(
   ({ start, target, onSummaryChange, onLog }, ref) => {
@@ -89,19 +86,11 @@ const BellmanFordGraphAnimation = forwardRef<BFHandle, BFProps>(
     const [target1, setTarget1] = useState(target);
     const [running, setRunning] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [info, setInfo] = useState<string | null>(null);
     const [total, setTotal] = useState<number | null>(null);
-    const [hasNegCycle, setHasNegCycle] = useState(false);
 
-    // Animation
+    // animation
+    const pairsRef = useRef<Array<[string, string]>>([]);
     const currentStepRef = useRef(0);
-    const stepsRef = useRef<
-      Array<
-        | { kind: "relax"; u: string; v: string; improved: boolean; distances?: DistMap }
-        | { kind: "path"; u: string; v: string }
-        | { kind: "negcycle"; cycle: string[] }
-      >
-    >([]);
 
     // ---------- Vis Network init ----------
     useEffect(() => {
@@ -111,7 +100,6 @@ const BellmanFordGraphAnimation = forwardRef<BFHandle, BFProps>(
         id: city,
         label: city,
         color: "#6366f1",
-        title: "", // tooltip distances
       }));
 
       const edges: Edge[] = graph.edges.map((e: any) => ({
@@ -171,152 +159,57 @@ const BellmanFordGraphAnimation = forwardRef<BFHandle, BFProps>(
       );
     };
 
-    const highlightStartTarget = (s: string, t: string) => {
+    const highlightEndpoints = (s: string, t: string) => {
       const n: any = networkRef.current;
       if (!n) return;
       n.body.data.nodes.update({
         id: s,
-        color: { background: "#fde68a", border: "#f59e0b" },
+        color: { background: "#fde68a", border: "#f59e0b" }, // départ
       });
       n.body.data.nodes.update({
         id: t,
-        color: { background: "#fecaca", border: "#ef4444" },
+        color: { background: "#fecaca", border: "#ef4444" }, // arrivée
       });
     };
 
-    const updateDistanceTooltips = (dist?: DistMap) => {
-      if (!dist) return;
+    const colorEdgeAndNode = (u: string, v: string) => {
       const n: any = networkRef.current;
-      const fmt = (d: any) =>
-        d === null || d === undefined || d === Infinity || d === "Infinity" ? "∞" : String(d);
-      Object.keys(dist).forEach((k) =>
-        n.body.data.nodes.update({ id: k, title: `d(${k}) = ${fmt((dist as any)[k])}` })
+      if (!n) return;
+      const e = findEdgeBetween(u, v);
+      if (e) {
+        n.body.data.edges.update({ id: e.id, color: "#22c55e", width: 4 });
+      }
+      n.body.data.nodes.update({
+        id: v,
+        color: { background: "#bbf7d0", border: "#22c55e" },
+      });
+      onLog?.(`Étape: ${u} → ${v}`);
+    };
+
+    const updateDistanceTooltips = (dist: DistMap) => {
+      const n: any = networkRef.current;
+      Object.entries(dist).forEach(([k, d]) =>
+        n.body.data.nodes.update({
+          id: k,
+          title: `d(${k}) = ${Number.isFinite(d) ? d : "∞"}`,
+        })
       );
     };
 
-    const colorEdge = (u: string, v: string, color: string, width = 4) => {
-      const n: any = networkRef.current;
-      const e = findEdgeBetween(u, v);
-      if (e) n.body.data.edges.update({ id: e.id, color, width });
-    };
-
-    const colorNodeState = (id: string, state: "active" | "settled") => {
-      const n: any = networkRef.current;
-      if (state === "active") {
-        n.body.data.nodes.update({
-          id,
-          color: { background: "#a5b4fc", border: "#6366f1" },
-        });
-      } else {
-        n.body.data.nodes.update({
-          id,
-          color: { background: "#6366f1", border: "#4f46e5" },
-        });
-      }
-    };
-
-    // ---------- Build steps from API ----------
-    const buildStepsFromResult = (res: BellmanFordResult) => {
-      const steps: typeof stepsRef.current = [];
-
-      const negCycle =
-        res.hasNegativeCycle ||
-        (Array.isArray(res.negativeCycle) && res.negativeCycle.length > 0);
-
-      if (negCycle) {
-        const cycle = (res.negativeCycle && res.negativeCycle.length
-          ? res.negativeCycle
-          : []) as string[];
-        steps.push({ kind: "negcycle", cycle });
-        return steps;
-      }
-
-      if (Array.isArray(res.iterations) && res.iterations.length > 0) {
-        // Mode "relaxations" étape par étape
-        res.iterations.forEach((it) => {
-          const d = it.distances;
-          (it.relaxations || []).forEach((r) => {
-            // chaque relaxation = une étape
-            steps.push({
-              kind: "relax",
-              u: r.u,
-              v: r.v,
-              improved: !!r.improved,
-              distances: d,
-            });
-          });
-        });
-        return steps;
-      }
-
-      // Sinon, on a un chemin final : on anime les arêtes du chemin
-      const path = (res.Path || res.path || []) as string[];
-      if (path && path.length >= 2) {
-        for (let i = 0; i < path.length - 1; i++) {
-          steps.push({ kind: "path", u: path[i], v: path[i + 1] });
-        }
-      }
-      return steps;
-    };
-
-    // ---------- Animation step ----------
+    // ---------- Une étape ----------
     const runStep = (i: number) => {
-      const step = stepsRef.current[i];
-      if (!step) return;
-
-      if (step.kind === "negcycle") {
-        // colorier le cycle négatif si fourni
-        const cyc = step.cycle || [];
-        if (cyc.length >= 2) {
-          for (let j = 0; j < cyc.length; j++) {
-            const u = cyc[j];
-            const v = cyc[(j + 1) % cyc.length];
-            colorEdge(u, v, "#ef4444", 5); // rouge
-          }
-        } else {
-          // si pas d’ordre, colorier toutes les arêtes en rouge pour signaler l’erreur
-          const n: any = networkRef.current;
-          n?.body.data.edges.get().forEach((e: any) =>
-            n.body.data.edges.update({ id: e.id, color: "#ef4444", width: 4 })
-          );
-        }
-        onLog?.("❌ Cycle de poids négatif détecté");
-        setHasNegCycle(true);
-        setRunning(false);
-        return;
-      }
-
-      if (step.kind === "relax") {
-        // surligner l’arête en cours
-        colorEdge(step.u, step.v, step.improved ? "#22c55e" : "#f59e0b", 4);
-        colorNodeState(step.u, "active");
-        colorNodeState(step.v, "active");
-
-        // distances tooltip snapshot
-        updateDistanceTooltips(step.distances);
-
-        onLog?.(
-          `${step.improved ? "✔︎" : "·"} Relaxation (${step.u} → ${step.v})${
-            step.improved ? " : amélioration" : ""
-          }`
-        );
-      }
-
-      if (step.kind === "path") {
-        // Colorier le chemin final
-        colorEdge(step.u, step.v, "#22c55e", 4);
-        colorNodeState(step.u, "settled");
-        colorNodeState(step.v, "settled");
-        onLog?.(`Chemin: ${step.u} → ${step.v}`);
-      }
-
+      const pairs = pairsRef.current;
+      if (!pairs.length || i >= pairs.length) return;
+      const [u, v] = pairs[i];
+      colorEdgeAndNode(u, v);
       currentStepRef.current = i + 1;
-      if (i + 1 >= stepsRef.current.length) {
+      if (i + 1 >= pairs.length) {
         setRunning(false);
+        onLog?.("✅ Chemin coloré");
       }
     };
 
-    // ---------- Run ----------
+    // ---------- Lancer ----------
     const handleRun = async () => {
       if (!networkRef.current) return;
       if (!start1 || !target1) {
@@ -329,59 +222,59 @@ const BellmanFordGraphAnimation = forwardRef<BFHandle, BFProps>(
       }
 
       setError(null);
-      setInfo(null);
       setTotal(null);
-      setHasNegCycle(false);
       setRunning(true);
       clearTimer();
       resetColors();
       currentStepRef.current = 0;
 
-      highlightStartTarget(start1, target1);
-      onLog?.(`Bellman-Ford (${start1} → ${target1})`);
+      highlightEndpoints(start1, target1);
 
       try {
-        const res: BellmanFordResult = await computeBellmanFordAsync(
-          graph as any,
-          start1,
-          target1
-        );
+        // ✅ nouvelle API : seulement (graph, start)
+        const res: ApiResult = await computeBellmanFordAsync(graph, start1);
 
-        const tCost = (res.TotalCost ?? res.totalCost ?? null) as number | null;
-        setTotal(tCost ?? null);
+        // distances tooltip
+        if (res?.distances) updateDistanceTooltips(res.distances);
+
+        // reconstruire le chemin côté front
+        const path = reconstructPath(res.parents ?? {}, start1, target1);
+        if (!path || path.length < 2) {
+          setRunning(false);
+          setError("Aucun chemin trouvé (via parents).");
+          onLog?.("Aucun chemin reconstruit depuis la map 'parents'.");
+          return;
+        }
+
+        // pairs à animer
+        const pairs: Array<[string, string]> = [];
+        for (let i = 0; i < path.length - 1; i++) pairs.push([path[i], path[i + 1]]);
+        pairsRef.current = pairs;
+
+        // coût final si dispo
+        const totalCost = res.distances?.[target1];
+        setTotal(Number.isFinite(totalCost) ? (totalCost as number) : null);
+
         onSummaryChange?.({
           algo: "Bellman-Ford",
           start: start1,
           target: target1,
-          distance: tCost ?? null,
-          hasNegativeCycle:
-            !!res.hasNegativeCycle || (Array.isArray(res.negativeCycle) && res.negativeCycle.length > 0),
-          path: (res.Path || res.path) ?? undefined,
+          distance: Number.isFinite(totalCost) ? totalCost : null,
+          path,
         });
 
-        stepsRef.current = buildStepsFromResult(res);
+        // focus caméra sur le chemin
+        networkRef.current.fit({
+          nodes: path,
+          animation: { duration: 800, easingFunction: "easeInOutQuad" },
+        });
 
-        if (stepsRef.current.length === 0) {
-          setInfo("Aucune étape à animer (pas d'itérations fournies et aucun chemin).");
-          setRunning(false);
-          return;
-        }
-
-        // Si on a un chemin final, focus caméra dessus
-        const path = (res.Path || res.path) as string[] | undefined;
-        if (path && path.length > 0) {
-          networkRef.current!.fit({
-            nodes: path,
-            animation: { duration: 800, easingFunction: "easeInOutQuad" },
-          });
-        }
-
-        // Animation auto
+        // animation
         let idx = 0;
         intervalRef.current = window.setInterval(() => {
           runStep(idx);
           idx++;
-          if (idx >= stepsRef.current.length) {
+          if (idx >= pairsRef.current.length) {
             clearTimer();
             setRunning(false);
           }
@@ -396,7 +289,7 @@ const BellmanFordGraphAnimation = forwardRef<BFHandle, BFProps>(
     // ---------- Controls ----------
     useImperativeHandle(ref, () => ({
       play: () => {
-        if (!stepsRef.current.length || running || hasNegCycle) return;
+        if (!pairsRef.current.length || running) return;
         setRunning(true);
         onLog?.("▶️ Lecture Bellman-Ford");
         let idx = currentStepRef.current;
@@ -404,7 +297,7 @@ const BellmanFordGraphAnimation = forwardRef<BFHandle, BFProps>(
         intervalRef.current = window.setInterval(() => {
           runStep(idx);
           idx++;
-          if (idx >= stepsRef.current.length) {
+          if (idx >= pairsRef.current.length) {
             clearTimer();
             setRunning(false);
           }
@@ -420,17 +313,15 @@ const BellmanFordGraphAnimation = forwardRef<BFHandle, BFProps>(
         resetColors();
         setRunning(false);
         setError(null);
-        setInfo(null);
         setTotal(null);
-        setHasNegCycle(false);
         currentStepRef.current = 0;
+        pairsRef.current = [];
         onLog?.("↺ Réinitialisation Bellman-Ford");
       },
       step: () => {
         runStep(currentStepRef.current);
       },
     }));
-      {console.log(computeBellmanFordAsync(graph,start1,target1))}
 
     return (
       <Box display="flex" flexDirection="column" alignItems="center" sx={{ p: { xs: 3, md: 5 } }}>
@@ -441,16 +332,6 @@ const BellmanFordGraphAnimation = forwardRef<BFHandle, BFProps>(
         {error && (
           <Alert severity="error" sx={{ mb: 2, width: "100%", maxWidth: 720 }}>
             {error}
-          </Alert>
-        )}
-        {hasNegCycle && (
-          <Alert severity="warning" sx={{ mb: 2, width: "100%", maxWidth: 720 }}>
-            Cycle de poids négatif détecté — distances non définies.
-          </Alert>
-        )}
-        {info && (
-          <Alert severity="info" sx={{ mb: 2, width: "100%", maxWidth: 720 }}>
-            {info}
           </Alert>
         )}
 
@@ -523,10 +404,9 @@ const BellmanFordGraphAnimation = forwardRef<BFHandle, BFProps>(
                 resetColors();
                 setRunning(false);
                 setError(null);
-                setInfo(null);
                 setTotal(null);
-                setHasNegCycle(false);
                 currentStepRef.current = 0;
+                pairsRef.current = [];
                 onLog?.("Reset visuel Bellman-Ford");
               }}
             >
@@ -534,7 +414,7 @@ const BellmanFordGraphAnimation = forwardRef<BFHandle, BFProps>(
             </Button>
           </Stack>
 
-          {total !== null && !hasNegCycle && (
+          {total !== null && (
             <Typography variant="body2" sx={{ ml: { xs: 0, sm: "auto" } }}>
               Coût total : <b>{total}</b>
             </Typography>

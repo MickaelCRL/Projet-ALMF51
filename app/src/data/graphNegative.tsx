@@ -1,6 +1,6 @@
 import type { Graph } from "../models/Graph";
 
-export const graphNegative: Graph = {
+export const graph: Graph = {
   nodes: ["s1", "s2", "s3", "s4", "s5", "s6"],
   edges: [
     { from: "s1", to: "s2", weight: 4 },

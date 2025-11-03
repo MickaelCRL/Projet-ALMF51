@@ -11,15 +11,15 @@ import {
 import Lab from "./pages/Lab";
 import useSWR from "swr";
 import { graph } from "./data/graph";
+
 import { computeFloydWarshallAsync } from "./services/floydWarshallService";
-import { graphNegative } from "./data/graphNegative";
 import { computeBellmanFordAsync } from "./services/bellmanFordService";
 
 function App() {
   const start = "s1";
   const { data: bellmanford } = useSWR(
-    ["bellmanford", graphNegative, start],
-    () => computeBellmanFordAsync(graphNegative, start)
+    ["bellmanford", graph, start],
+    () => computeBellmanFordAsync(graph, start)
   );
 
   console.log("bellmanford", bellmanford);
@@ -32,7 +32,7 @@ function App() {
 
   const { distances, next, nodes } = floydwarshall;
 
-  return (
+ /* return (
     <TableContainer component={Paper} style={{ maxHeight: 600 }}>
       <Table stickyHeader>
         <TableHead>
@@ -64,7 +64,7 @@ function App() {
         </TableBody>
       </Table>
     </TableContainer>
-  );
+  );*/
   return (
     <>
       <Lab></Lab>
