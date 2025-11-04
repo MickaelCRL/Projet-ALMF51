@@ -10,10 +10,7 @@ import { Link, useNavigate } from "react-router-dom";
 function Header() {
   const navigate = useNavigate();
 
-  const navItems = [
-    { label: "À propos", path: "/a-propos" },
-  ];
-
+ 
   return (
     <AppBar
       position="static"
@@ -40,13 +37,7 @@ function Header() {
           </Typography>
         </Link>
 
-        <Box sx={{ display: { xs: "none", md: "flex" }, gap: 1 }}>
-          {navItems.map((item) => (
-            <HeaderButton key={item.label} onClick={() => navigate(item.path)}>
-              {item.label}
-            </HeaderButton>
-          ))}
-        </Box>
+        
 
         <IconButton
           sx={{
